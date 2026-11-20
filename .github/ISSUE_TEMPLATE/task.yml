@@ -1,0 +1,39 @@
+name: 开发或实验任务
+description: 明确交付物、需求与验收条件
+title: '[任务] '
+body:
+  - type: input
+    id: requirements
+    attributes:
+      label: 关联需求
+      placeholder: REQ-02 / NFR-01 / BOOT-04
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: 负责人及协作者
+      placeholder: C 负责，B/E 联调
+    validations:
+      required: true
+  - type: dropdown
+    id: iteration
+    attributes:
+      label: 目标迭代
+      options: [W1, W2, W3, W4]
+    validations:
+      required: true
+  - type: textarea
+    id: deliverable
+    attributes:
+      label: 交付物与任务边界
+      description: 具体做什么、影响哪些接口、依赖什么。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收条件与证据
+      description: 如何运行和观察成功；异常情况如何检查；结果保存在哪里。
+    validations:
+      required: true

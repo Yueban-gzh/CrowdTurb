@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CrowdTurb scene draft 0.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scene_id", "revision", "description", "units", "grid", "walkable", "initial_density", "exits", "boundary_policy", "adjustable_parameters"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "scene_id": {"type": "string", "minLength": 1},
+    "revision": {"type": "integer", "minimum": 1},
+    "description": {"type": "string", "minLength": 1},
+    "units": {"const": {"length": "m", "time": "s", "density": "person/m2", "velocity": "m/s"}},
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nx", "ny", "dx", "dy", "origin"],
+      "properties": {
+        "nx": {"type": "integer", "minimum": 1},
+        "ny": {"type": "integer", "minimum": 1},
+        "dx": {"type": "number", "exclusiveMinimum": 0},
+        "dy": {"type": "number", "exclusiveMinimum": 0},
+        "origin": {"$ref": "#/$defs/point"}
+      }
+    },
+    "walkable": {"type": "array", "minItems": 1, "items": {"type": "array", "minItems": 1, "items": {"type": "boolean"}}},
+    "initial_density": {"$ref": "#/$defs/density"},
+    "boundary_policy": {"const": {"walls": "no_flux", "exits": "outflow"}},
+    "exits": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["exit_id", "cells", "width_m"],
+        "properties": {
+          "exit_id": {"type": "string", "minLength": 1},
+          "cells": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "array", "prefixItems": [{"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}], "items": false, "minItems": 2}},
+          "width_m": {"type": "number", "exclusiveMinimum": 0}
+        }
+      }
+    },
+    "adjustable_parameters": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["parameter_id", "kind", "target_id", "min_m", "max_m"],
+        "properties": {
+          "parameter_id": {"type": "string", "minLength": 1},
+          "kind": {"const": "exit_width"},
+          "target_id": {"type": "string", "minLength": 1},
+          "min_m": {"type": "number", "exclusiveMinimum": 0},
+          "max_m": {"type": "number", "exclusiveMinimum": 0}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "point": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}], "items": false, "minItems": 2},
+    "density": {"type": "array", "minItems": 1, "items": {"type": "array", "minItems": 1, "items": {"type": "number", "minimum": 0}}}
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1.0",
+  "result_id": "mock-field-001",
+  "scene_id": "mock-hall",
+  "scene_revision": 1,
+  "source": "mock",
+  "description": "Hand-authored arbitrary frames for integration only; no PDE or conservation claim.",
+  "provenance": {"generator": "hand-authored-mock-v1", "reproducibility_record": null},
+  "frames": [
+    {"time_s": 0.0, "density": [[1.0, 1.0, 0.5, 0.0], [1.0, 0.0, 0.5, 0.0], [1.0, 1.0, 0.5, 0.0]], "velocity": [[[0.2, 0.0], [0.2, 0.0], [0.3, 0.0], [0.3, 0.0]], [[0.0, 0.2], [0.0, 0.0], [0.3, 0.0], [0.3, 0.0]], [[0.2, 0.0], [0.2, 0.0], [0.3, 0.0], [0.3, 0.0]]]},
+    {"time_s": 1.0, "density": [[0.8, 0.9, 0.6, 0.1], [0.9, 0.0, 0.6, 0.1], [0.8, 0.9, 0.6, 0.1]], "velocity": [[[0.2, 0.0], [0.3, 0.0], [0.4, 0.0], [0.4, 0.0]], [[0.0, 0.2], [0.0, 0.0], [0.4, 0.0], [0.4, 0.0]], [[0.2, 0.0], [0.3, 0.0], [0.4, 0.0], [0.4, 0.0]]]}
+  ]
+}

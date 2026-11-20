@@ -1,0 +1,39 @@
+# Local environments and credentials
+.venv/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python / frontend generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+node_modules/
+dist/
+build/
+.next/
+coverage/
+
+# Runtime and experiment outputs (keep small curated fixtures in examples)
+data/
+runs/
+artifacts/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.sqlite
+*.sqlite3
+*.log
+
+# Local editor / OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+~$*

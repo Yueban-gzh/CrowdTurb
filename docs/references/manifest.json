@@ -1,0 +1,24 @@
+{
+  "project": "CrowdTurb",
+  "archived_on": "2026-11-20",
+  "documents": [
+    {
+      "file": "originals/ArchFlow_AI_PRD_V5_四周精简版.docx",
+      "original_source": "D:/本科生2024-2028/软件工程/智能软件工程/ArchFlow_AI_PRD_V5_四周精简版.docx",
+      "sha256": "da699d3b440e32afc07c12b6fdc356c22287252b1eed6603cfa91b57ed83ba6f",
+      "text_extract": "extracted/ArchFlow_AI_PRD_V5_四周精简版.md"
+    },
+    {
+      "file": "originals/ArchFlow_AI_项目概念说明书_V0.1.docx",
+      "original_source": "D:/本科生2024-2028/软件工程/智能软件工程/ArchFlow_AI_项目概念说明书_V0.1.docx",
+      "sha256": "d64924b293688ce5b6507507572d891a1c1a27750bee0ae77db3eb6ed6306f5a",
+      "text_extract": "extracted/ArchFlow_AI_项目概念说明书_V0.1.md"
+    },
+    {
+      "file": "originals/ArchFlow_AI_五人分工_V5_四周简明计划.docx",
+      "original_source": "D:/本科生2024-2028/软件工程/智能软件工程/ArchFlow_AI_五人分工_V5_四周简明计划.docx",
+      "sha256": "862c66da8a85e56aa9d0379fba76d936cee11fe898984106f0535a939e066eab",
+      "text_extract": "extracted/ArchFlow_AI_五人分工_V5_四周简明计划.md"
+    }
+  ]
+}
