@@ -37,3 +37,7 @@ checkpoints/
 .DS_Store
 Thumbs.db
 ~$*
+
+# Local IDE/tool state (CodeArts Doer)
+.arts/
+.codeartsdoer/
