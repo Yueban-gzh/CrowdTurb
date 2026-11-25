@@ -1303,11 +1303,13 @@ function init3d(scene, playback, fieldForHeat, dMax, analysis) {
   // 相机预设：透视 / 俯视，过渡用缓动补间
   const VIEWS = {
     persp: {
-      pos: [centerX + worldW * 0.5, maxDim * 1.05 + 2, centerZ + worldD * 0.95],
+      // 相机距离按场馆尺寸收敛：场馆占满画面且不被裁切，个体点才看得清。
+      // 单层体育馆多为宽扁形状，因此相机更偏俯角、距离略放远。
+      pos: [centerX + worldW * 0.30, maxDim * 0.92 + 2, centerZ + worldD * 0.78],
       target: [centerX, 0, centerZ],
     },
     top: {
-      pos: [centerX, maxDim * 1.5 + 4, centerZ + maxDim * 0.02],
+      pos: [centerX, maxDim * 1.05 + 4, centerZ + maxDim * 0.02],
       target: [centerX, 0, centerZ],
     },
   };
@@ -1409,8 +1411,8 @@ function init3d(scene, playback, fieldForHeat, dMax, analysis) {
   if (particles) sceneRoot.add(particles.points);
 
   // 轨迹模式：真实个体点（C 输出的逐人位置，不是示意粒子）
-  // 点大小按场馆尺寸缩放，保证 4m 小馆到 60m 体育馆都看得清
-  const trajPointSize = Math.max(0.12, maxDim * 0.0065);
+  // 点大小按场馆尺寸缩放（约 1.5% 场馆长边），保证 4m 小馆到 60m 体育馆都看得清
+  const trajPointSize = Math.max(0.2, maxDim * 0.015);
   const trajectoryPoints = playback.kind === 'trajectory'
     ? createTrajectoryPoints(playback, 0x8ff0cd, trajPointSize)
     : null;
