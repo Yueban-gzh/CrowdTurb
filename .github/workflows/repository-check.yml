@@ -27,3 +27,7 @@ jobs:
         run: python tools/check_repository.py
       - name: Reject invalid integration payloads
         run: python -m unittest discover -s tests/contracts -v
+      - name: Check scene geometry and passage candidates
+        run: python -m unittest discover -s apps/web/scene-config/tests -v
+      - name: Check trajectory aggregation and D candidate search
+        run: python -m unittest discover -s packages/analysis/tests -v

@@ -1,5 +1,7 @@
 # 原始项目资料与版本关系
 
+2026-11-25 用户确认从原 V5 PDE/FNO 改为 STDDN 个体仿真、D 聚合，并增加通道宽度；现行需求见 [需求基线](../requirements.md) 与 [ADR 0002](../decisions/0002-stddn-trajectory-and-passage.md)。下文描述原件范围，原件不改写。
+
 用户提供的三份 DOCX 原样归档于 `originals/`。`extracted/` 是为检索生成的正文与表格文本，不保留插图、分页和版式，不代替原件。每份原件 SHA-256 和源路径见 [manifest.json](manifest.json)。
 
 原文使用旧项目名 ArchFlow AI；用户在 2026-11-20 确定仓库与项目名称为 **CrowdTurb**。保留原文件名以免混淆历史资料。

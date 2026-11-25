@@ -1,0 +1,5 @@
+[
+  {"type": "exit_width", "target_id": "E1", "values": [4.0, 6.0, 8.0]},
+  {"type": "passage_width", "target_id": "P1", "values": [2.0, 4.0, 6.0]},
+  {"type": "facility_center_x", "target_id": "F1", "values": [9.0, 21.0]}
+]

@@ -1,5 +1,7 @@
 # 首周任务清单
 
+2026-11-25 用户确认路线变更，BOOT-04/05 的 PDE/FNO 内容保留作历史计划，现改为 C 完整 STDDN/几何响应与模型适用性实验；BOOT-06 扩展轨迹聚合；BOOT-07 增加通道宽度，均按 [ADR 0002](decisions/0002-stddn-trajectory-and-passage.md) 执行。
+
 状态均为待认领。以下本地编号在创建 GitHub Issue 时保留在标题或正文中；不是已经创建的远程 Issue。一个任务可拆分为多个小 PR。
 
 ## BOOT-01 需求与分工评审

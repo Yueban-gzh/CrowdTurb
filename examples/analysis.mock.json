@@ -1,0 +1,130 @@
+{
+  "schema_version": "0.2.0",
+  "scene_id": "mock-trajectory-hall",
+  "scene_revision": 1,
+  "input_hash": "45f09b1779d12e1cd9b9f03d79480cf52b9b2dcc082bc8a67e3ca54807f44ba1",
+  "source": "mock",
+  "derived_from": "mock-trajectory-001",
+  "initial_state_hash": "ed9b23c786461f9a6a0984e6ff10de72af36b73ed656c20b65847522e2d4edef",
+  "model_sha256": null,
+  "simulation_settings": {
+    "dt_s": 0.08,
+    "seed": 0,
+    "integrator": "hand-authored-not-integrated",
+    "planner_version": "none-mock",
+    "collision_version": "none-mock"
+  },
+  "reproducibility_record": null,
+  "analysis_id": "mock-trajectory-001-analysis",
+  "status": "normal",
+  "method_version": "trajectory-grid-0.1.0",
+  "time_range_s": [
+    0.0,
+    4.0
+  ],
+  "grid": {
+    "nx": 3,
+    "ny": 2,
+    "dx": 1.0,
+    "dy": 1.0,
+    "origin": [
+      0.0,
+      0.0
+    ]
+  },
+  "threshold": {
+    "value": 1.5,
+    "unit": "person/m2",
+    "comparison": ">",
+    "basis": "Synthetic hand-calculation threshold only; not a safety standard"
+  },
+  "metrics": {
+    "remaining_at_end": {
+      "value": 1,
+      "unit": "person",
+      "definition": "Active agents at the final recorded time; horizon is explicit",
+      "source": "mock",
+      "status": "normal"
+    },
+    "congestion_area_time": {
+      "value": 1.5,
+      "unit": "m2*s",
+      "definition": "Area above threshold integrated with previous-sample hold",
+      "source": "mock",
+      "status": "normal"
+    },
+    "exited_people": {
+      "value": 2,
+      "unit": "person",
+      "definition": "Unique explicit exit events in the recorded interval",
+      "source": "mock",
+      "status": "normal"
+    }
+  },
+  "series": [
+    {
+      "metric_id": "remaining_people",
+      "time_s": [
+        0.0,
+        1.5,
+        4.0
+      ],
+      "values": [
+        3,
+        2,
+        1
+      ],
+      "unit": "person",
+      "source": "mock",
+      "status": "normal",
+      "interpolation": "previous_sample"
+    },
+    {
+      "metric_id": "congested_area",
+      "time_s": [
+        0.0,
+        1.5,
+        4.0
+      ],
+      "values": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "unit": "m2",
+      "source": "mock",
+      "status": "normal",
+      "interpolation": "previous_sample"
+    },
+    {
+      "metric_id": "exit_cumulative:E1",
+      "time_s": [
+        0.0,
+        1.5,
+        4.0
+      ],
+      "values": [
+        0,
+        1,
+        2
+      ],
+      "unit": "person",
+      "source": "mock",
+      "status": "normal",
+      "interpolation": "previous_sample"
+    }
+  ],
+  "hotspots": [
+    {
+      "ix": 0,
+      "iy": 0,
+      "start_time_s": 0.0,
+      "end_time_s": 1.5,
+      "observed_duration_s": 1.5,
+      "peak_density": 2.0,
+      "unit": "person/m2",
+      "source": "mock",
+      "status": "normal"
+    }
+  ]
+}
