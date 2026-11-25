@@ -145,6 +145,17 @@ body {
   font-size: 11.5px;
 }
 
+#dataset-select {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #171d27;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+}
+
 /* ---------- 主布局：3D 主视图居左占主要区域，辅助信息集中于右侧 ---------- */
 
 .layout {
@@ -545,6 +556,93 @@ body {
   background: radial-gradient(circle, #eef2f7 0 52%, #181d26 58% 72%, transparent 73%);
   border: none;
   border-radius: 50%;
+}
+
+/* ---------- 分析指标面板 ---------- */
+
+.analysis-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.metric-card {
+  padding: 9px 11px;
+  border: 1px solid var(--border-soft);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.metric-value {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.metric-unit {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-faint);
+  margin-left: 4px;
+}
+
+.metric-label {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.metric-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.dot-inline {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dot-inline.ok { background: var(--green); }
+.dot-inline.warn { background: var(--amber); }
+.dot-inline.fail { background: var(--danger); }
+
+.series-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.series-title {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.hotspot-summary {
+  font-size: 11px;
+  color: var(--text-faint);
 }
 
 /* ---------- 页脚 ---------- */

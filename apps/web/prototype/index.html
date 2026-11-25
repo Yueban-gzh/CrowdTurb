@@ -22,6 +22,10 @@
       <span class="brand-sub">B 模块 · 场馆人流 3D 可视化</span>
     </div>
     <div class="header-badges">
+      <select id="dataset-select" aria-label="数据集" title="切换数据集">
+        <option value="gym">示例体育馆（A 场景 + Mock 轨迹）</option>
+        <option value="legacy-mock">W1 Mock 小样例（4×3）</option>
+      </select>
       <span class="badge badge-w1">W1 原型 · BOOT-03</span>
       <span class="badge badge-mock">Mock 数据</span>
     </div>
@@ -66,6 +70,16 @@
           <div class="legend-item"><span class="swatch exit"></span>出口</div>
           <div class="legend-item"><span class="swatch obstacle"></span>障碍 / 不可通行</div>
           <div class="legend-item"><span class="swatch particle"></span>示意粒子</div>
+        </div>
+      </div>
+
+      <div class="panel" id="analysis-panel">
+        <div class="panel-head-row">
+          <h2>分析指标</h2>
+          <span id="analysis-source" class="status-badge">—</span>
+        </div>
+        <div id="analysis-body" class="analysis-body">
+          <p class="hint">正在加载分析结果…</p>
         </div>
       </div>
 
