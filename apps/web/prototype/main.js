@@ -770,7 +770,7 @@ function updateParticles(particles, scene, density, velocity, dMax, dt) {
 // 2D 俯视图（数据坐标：x → 右，y → 上；canvas y 轴向下，需翻转）
 // ---------------------------------------------------------------------------
 
-function draw2d(canvas, scene, density, velocity, dMax, hover, exitCells, analysis, timeS, agents) {
+function draw2d(canvas, scene, density, velocity, dMax, hover, exitCells, analysis, timeS, agents, sceneSrcGrid) {
   const ctx = canvas.getContext('2d');
   const { nx, ny, dx, dy, origin } = scene.grid;
   const W = canvas.width;
@@ -783,12 +783,28 @@ function draw2d(canvas, scene, density, velocity, dMax, hover, exitCells, analys
   ctx.fillStyle = '#0b0e14';
   ctx.fillRect(0, 0, W, H);
 
+  // 出口单元在“当前显示网格”上的位置。
+  // exitCells 用原始网格坐标，而 2D 可能是降采样后的网格，必须换算，
+  // 否则只有坐标碰巧重合的格子会变绿（真实 bug：人从没标绿的出口离开）。
+  const srcGrid = sceneSrcGrid || scene.grid;
+  const exitCellsShown = new Set();
+  {
+    const sx = nx / srcGrid.nx;
+    const sy = ny / srcGrid.ny;
+    for (const key of exitCells) {
+      const [ex, ey] = key.split(',').map(Number);
+      const tx = Math.min(nx - 1, Math.floor(ex * sx));
+      const ty = Math.min(ny - 1, Math.floor(ey * sy));
+      exitCellsShown.add(`${tx},${ty}`);
+    }
+  }
+
   // 单元（canvas 行号 = ny-1-iy，保证 y 向上）
   for (let iy = 0; iy < ny; iy++) {
     for (let ix = 0; ix < nx; ix++) {
       const px = ox + ix * cs;
       const py = oy + (ny - 1 - iy) * cs;
-      if (exitCells.has(`${ix},${iy}`)) {
+      if (exitCellsShown.has(`${ix},${iy}`)) {
         ctx.save();
         ctx.shadowColor = `rgba(${EXIT_COLOR[0]}, ${EXIT_COLOR[1]}, ${EXIT_COLOR[2]}, 0.8)`;
         ctx.shadowBlur = 8;
@@ -1566,7 +1582,7 @@ function init3d(scene, playback, fieldForHeat, dMax, analysis) {
         : null;
       draw2d(canvas2d, scene2d,
         sample2d.density, sample2d.velocity, dMax, hover, exitCells, analysis, tau,
-        frame2d ? frame2d.agents : null);
+        frame2d ? frame2d.agents : null, scene.grid);
     }
 
     if (activeView === '3d') {
