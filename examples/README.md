@@ -12,5 +12,6 @@
 
 - [trajectory.mock.json](trajectory.mock.json)：3 人、3 个不等间隔快照、2 个退出事件，手工构造，非物理仿真。
 - [analysis.mock.json](analysis.mock.json)：生成的指标/热点，阈值 1.5 为手算假设，不是安全标准。
-- [field-from-trajectory.mock.json](field-from-trajectory.mock.json)：D 聚合场，0.2.0，B 旧加载器需要适配。
+- [field-from-trajectory.mock.json](field-from-trajectory.mock.json)：D 聚合场，0.3.0，B 旧加载器需要适配。
 - [layout-samples.mock.json](layout-samples.mock.json)：出口、通道、展台的 18 个组合，对应 [通道基准](../apps/web/scene-config/scenes/passage_optimization_example.json)，没有真实评价。
+- [comparison.mock.json](comparison.mock.json)：自动范围采样的 27 个候选，使用手工编排轨迹/失败记录演示排名与各类状态；并未执行物理仿真。示例预算、阈值和改善均不代表真实场馆建议。完整输入可由 D demo 入口重建到忽略的输出目录。

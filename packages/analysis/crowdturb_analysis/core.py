@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 from jsonschema import Draft202012Validator
+from .density import aggregate, estimator_config
 
 REPO = Path(__file__).resolve().parents[3]
 
@@ -91,12 +92,13 @@ def validate_trajectory(data):
     return events
 
 
-def analyze(data, threshold, threshold_basis):
+def analyze(data, threshold, threshold_basis, *, density_method="cell", bandwidth_m=None):
     """Return (derived density/velocity field, independent analysis result)."""
     require(isinstance(threshold, (int, float)) and not isinstance(threshold, bool)
             and math.isfinite(threshold) and threshold > 0, "Threshold must be a finite positive density")
     require(isinstance(threshold_basis, str) and bool(threshold_basis.strip()), "State the threshold source or assumption")
     events = validate_trajectory(data)
+    estimation = estimator_config(density_method, bandwidth_m)
     grid = data["grid"]
     nx, ny = grid["nx"], grid["ny"]
     area = grid["dx"] * grid["dy"]
@@ -104,16 +106,7 @@ def analyze(data, threshold, threshold_basis):
     frames, times, remaining, congested = [], [], [], []
     densities = []
     for frame in data["frames"]:
-        count = np.zeros((ny, nx), dtype=np.int64)
-        velocity = np.zeros((ny, nx, 2), dtype=float)
-        for agent in frame["agents"]:
-            x, y = agent["position_m"]
-            ix = math.floor((x - grid["origin"][0]) / grid["dx"])
-            iy = math.floor((y - grid["origin"][1]) / grid["dy"])
-            count[iy, ix] += 1
-            velocity[iy, ix] += agent["velocity_mps"]
-        np.divide(velocity, count[:, :, None], out=velocity, where=count[:, :, None] > 0)
-        density = count / area
+        density, velocity = aggregate(frame["agents"], grid, data["walkable"], estimation)
         require(np.isfinite(density).all() and np.isfinite(velocity).all(), "Aggregation overflow")
         frames.append({"time_s": frame["time_s"], "density": density.tolist(), "velocity": velocity.tolist()})
         times.append(frame["time_s"])
@@ -124,15 +117,17 @@ def analyze(data, threshold, threshold_basis):
     congestion_integral = float(np.dot(np.array(congested[:-1]), dt))
     require(math.isfinite(congestion_integral), "Congestion integral overflow")
     source = data["source"]
-    common = {"schema_version": "0.2.0", "scene_id": data["scene_id"],
+    common = {"schema_version": "0.3.0", "scene_id": data["scene_id"],
               "scene_revision": data["scene_revision"], "input_hash": data["input_hash"],
               "source": source, "derived_from": data["result_id"],
               "initial_state_hash": data["initial_state_hash"],
               "model_sha256": data["model_sha256"], "simulation_settings": data["simulation_settings"],
-              "reproducibility_record": data["reproducibility_record"]}
+              "reproducibility_record": data["reproducibility_record"], "density_estimator": estimation}
+    if "behavior_hash" in data:
+        common["behavior_hash"] = data["behavior_hash"]
     field = {**common, "result_id": data["result_id"] + "-field", "grid": grid,
              "walkable": data["walkable"], "frames": frames,
-             "method": "cell count / full walkable cell area; per-cell arithmetic mean velocity; empty=zero"}
+             "method": "mass per full walkable cell area; mass-weighted vector mean; empty=zero"}
 
     def metric(value, unit, definition):
         return {"value": value, "unit": unit, "definition": definition,
@@ -165,7 +160,7 @@ def analyze(data, threshold, threshold_basis):
                                      "source": source, "status": "normal"})
                     start, duration, peak = None, 0.0, 0.0
     output = {**common, "analysis_id": data["result_id"] + "-analysis", "status": "normal",
-              "method_version": "trajectory-grid-0.1.0", "time_range_s": [times[0], times[-1]],
+              "method_version": "trajectory-analysis-0.2.0", "time_range_s": [times[0], times[-1]],
               "grid": grid,
               "threshold": {"value": threshold, "unit": "person/m2", "comparison": ">", "basis": threshold_basis},
               "metrics": {

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "CrowdTurb trajectory analysis proposal 0.2.0",
+  "title": "CrowdTurb trajectory analysis proposal 0.3.0",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,11 +22,12 @@
     "hotspots",
     "model_sha256",
     "simulation_settings",
-    "reproducibility_record"
+    "reproducibility_record",
+    "density_estimator"
   ],
   "properties": {
     "schema_version": {
-      "const": "0.2.0"
+      "const": "0.3.0"
     },
     "analysis_id": {
       "type": "string",
@@ -62,7 +63,7 @@
       "const": "normal"
     },
     "method_version": {
-      "const": "trajectory-grid-0.1.0"
+      "const": "trajectory-analysis-0.2.0"
     },
     "time_range_s": {
       "type": "array",
@@ -313,6 +314,88 @@
         "null"
       ],
       "minLength": 1
+    },
+    "density_estimator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "bandwidth_m",
+        "support_sigma",
+        "boundary",
+        "version"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "cell",
+            "gaussian_visible"
+          ]
+        },
+        "bandwidth_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "support_sigma": {
+          "enum": [
+            null,
+            3.0
+          ]
+        },
+        "boundary": {
+          "enum": [
+            "whole_walkable_cell",
+            "visible_walkable_centers_per_person_normalization"
+          ]
+        },
+        "version": {
+          "const": "1"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "cell"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "bandwidth_m": {
+                "type": "null"
+              },
+              "support_sigma": {
+                "type": "null"
+              },
+              "boundary": {
+                "const": "whole_walkable_cell"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "bandwidth_m": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "support_sigma": {
+                "const": 3.0
+              },
+              "boundary": {
+                "const": "visible_walkable_centers_per_person_normalization"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "behavior_hash": {
+      "$ref": "#/$defs/hash"
     }
   },
   "$defs": {

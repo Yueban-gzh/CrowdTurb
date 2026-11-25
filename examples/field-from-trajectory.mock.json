@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.2.0",
+  "schema_version": "0.3.0",
   "scene_id": "mock-trajectory-hall",
   "scene_revision": 1,
   "input_hash": "45f09b1779d12e1cd9b9f03d79480cf52b9b2dcc082bc8a67e3ca54807f44ba1",
@@ -15,6 +15,13 @@
     "collision_version": "none-mock"
   },
   "reproducibility_record": null,
+  "density_estimator": {
+    "method": "cell",
+    "bandwidth_m": null,
+    "support_sigma": null,
+    "boundary": "whole_walkable_cell",
+    "version": "1"
+  },
   "result_id": "mock-trajectory-001-field",
   "grid": {
     "nx": 3,
@@ -175,5 +182,5 @@
       ]
     }
   ],
-  "method": "cell count / full walkable cell area; per-cell arithmetic mean velocity; empty=zero"
+  "method": "mass per full walkable cell area; mass-weighted vector mean; empty=zero"
 }
