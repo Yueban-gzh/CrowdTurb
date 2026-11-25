@@ -1,0 +1,12 @@
+{
+  "scene": "gym_facilities_example.json",
+  "candidates": [
+    {"candidate_id": "C1", "changes": [{"facility_id": "F1", "center": [22.0, 7.5]}]},
+    {"candidate_id": "C2", "changes": [{"facility_id": "F1", "center": [22.1, 7.5]}]},
+    {"candidate_id": "C3", "changes": [{"facility_id": "F1", "rotation_deg": 90.0}]},
+    {"candidate_id": "C4", "changes": [{"facility_id": "F1", "center": [30.0, 3.5]}]},
+    {"candidate_id": "C5", "changes": [{"facility_id": "F2", "length": 5.0}]},
+    {"candidate_id": "C6", "changes": [{"exit_id": "E1", "width": 8.0}]},
+    {"candidate_id": "C7", "changes": [{"exit_id": "E1", "width": 12.0}]}
+  ]
+}

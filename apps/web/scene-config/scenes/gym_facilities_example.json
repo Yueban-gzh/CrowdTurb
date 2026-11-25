@@ -1,0 +1,96 @@
+{
+  "version": "0.2",
+  "meta": {
+    "name": "示例体育馆-临时展台",
+    "author": "A",
+    "created": "2026-11-25",
+    "revision": 1,
+    "parent_revision": null,
+    "notes": "v0.2 示例：在 v0.1 体育馆基础上增加两个 4m x 2m 可移动临时展台（固定尺寸），用于 D 的布局候选与 C 的掩码重算联调。设施只能在本场景 allowed_region 内移动；初始人群区为禁放区。"
+  },
+  "geometry": {
+    "size": [60.0, 40.0],
+    "resolution": 0.5,
+    "walls": [],
+    "layout_policy": {
+      "min_passage_width": 0.9,
+      "exit_clearance": 0.5
+    },
+    "obstacles": [
+      { "name": "主舞台",   "x": 24.0, "y": 35.5, "w": 12.0, "h": 4.5 },
+      { "name": "器材室西", "x": 1.0,  "y": 34.0, "w": 6.0,  "h": 6.0 },
+      { "name": "器材室东", "x": 53.0, "y": 34.0, "w": 6.0,  "h": 6.0 }
+    ],
+    "facilities": [
+      {
+        "id": "F1",
+        "name": "临时展台 A",
+        "kind": "exhibit",
+        "effect": "block",
+        "center": [30.0, 7.5],
+        "length": 4.0,
+        "width": 2.0,
+        "rotation_deg": 0.0,
+        "movable": true,
+        "resizable": false,
+        "allowed_region": [[18.0, 6.0], [42.0, 6.0], [42.0, 9.0], [18.0, 9.0]]
+      },
+      {
+        "id": "F2",
+        "name": "临时展台 B",
+        "kind": "exhibit",
+        "effect": "block",
+        "center": [38.0, 7.5],
+        "length": 4.0,
+        "width": 2.0,
+        "rotation_deg": 0.0,
+        "movable": true,
+        "resizable": false,
+        "allowed_region": [[18.0, 6.0], [42.0, 6.0], [42.0, 9.0], [18.0, 9.0]]
+      }
+    ]
+  },
+  "exits": [
+    { "id": "E1", "name": "南侧主出口", "side": "S", "offset": 27.0, "width": 6.0 },
+    { "id": "E2", "name": "西南应急门", "side": "S", "offset": 4.0,  "width": 2.5 },
+    { "id": "E3", "name": "东南应急门", "side": "S", "offset": 53.5, "width": 2.5 },
+    { "id": "E4", "name": "东侧出口",   "side": "E", "offset": 17.0, "width": 2.5 },
+    { "id": "E5", "name": "西侧出口",   "side": "W", "offset": 17.0, "width": 2.5 },
+    { "id": "E6", "name": "北侧应急门", "side": "N", "offset": 47.0, "width": 2.0 }
+  ],
+  "crowd": {
+    "zones": [
+      { "id": "Z1", "name": "看台西侧",   "polygon": [[1.5, 6.0], [7.0, 6.0], [7.0, 32.0], [1.5, 32.0]],   "count": 400, "profile": "seated" },
+      { "id": "Z2", "name": "看台东侧",   "polygon": [[53.0, 6.0], [58.5, 6.0], [58.5, 32.0], [53.0, 32.0]], "count": 400, "profile": "seated" },
+      { "id": "Z3", "name": "中央活动区", "polygon": [[18.0, 10.0], [42.0, 10.0], [42.0, 30.0], [18.0, 30.0]], "count": 700, "profile": "standing" },
+      { "id": "Z4", "name": "北侧过道",   "polygon": [[14.0, 31.0], [46.0, 31.0], [46.0, 34.5], [14.0, 34.5]], "count": 250, "profile": "standing" },
+      { "id": "Z5", "name": "南侧过道",   "polygon": [[10.0, 2.0], [50.0, 2.0], [50.0, 5.0], [10.0, 5.0]],   "count": 150, "profile": "standing" }
+    ]
+  },
+  "variable_parameters": [
+    {
+      "name": "南侧主出口宽度（m）",
+      "type": "exit_width",
+      "target_id": "E1",
+      "unit": "m",
+      "allowed_range": [4.0, 10.0],
+      "current_value": 6.0,
+      "scene_diff": [{ "exit_id": "E1", "width": 6.0 }]
+    },
+    {
+      "name": "临时展台 A 中心 x（m）",
+      "type": "facility_center_x",
+      "target_id": "F1",
+      "unit": "m",
+      "allowed_range": [20.0, 40.0],
+      "current_value": 30.0,
+      "scene_diff": [{ "facility_id": "F1", "center": [30.0, 7.5] }]
+    }
+  ],
+  "params": {
+    "walk_speed": 1.2,
+    "T": 300,
+    "dt": 0.1,
+    "jam_density": 4.0
+  }
+}

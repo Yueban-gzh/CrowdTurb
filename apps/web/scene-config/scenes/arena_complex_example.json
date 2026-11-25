@@ -1,0 +1,119 @@
+{
+  "version": "0.2",
+  "meta": {
+    "name": "滨海文化中心 · 综合体育馆",
+    "author": "A",
+    "created": "2026-11-25",
+    "revision": 1,
+    "parent_revision": null,
+    "notes": "v0.2 复杂场馆示例：分层看台、中央活动区、环形通道、固定功能房和四个可移动临时展台。参考公共建筑平面语言，非任何真实场馆复制。"
+  },
+  "geometry": {
+    "size": [72.0, 48.0],
+    "resolution": 0.5,
+    "walls": [
+      [14, 15, 22, 15],
+      [50, 15, 58, 15],
+      [14, 34, 22, 34],
+      [50, 34, 58, 34],
+      [14, 18, 14, 30],
+      [58, 18, 58, 30]
+    ],
+    "layout_policy": {
+      "min_passage_width": 1.2,
+      "exit_clearance": 0.8
+    },
+    "obstacles": [
+      { "name": "主舞台", "x": 30, "y": 42, "w": 12, "h": 5 },
+      { "name": "西侧器材库", "x": 2, "y": 39, "w": 9, "h": 7 },
+      { "name": "东侧器材库", "x": 61, "y": 39, "w": 9, "h": 7 },
+      { "name": "西看台设备间", "x": 2, "y": 15, "w": 8, "h": 6 },
+      { "name": "东看台设备间", "x": 62, "y": 15, "w": 8, "h": 6 },
+      { "name": "西南寄存区", "x": 2, "y": 2, "w": 8, "h": 4 },
+      { "name": "东南办公区", "x": 62, "y": 2, "w": 8, "h": 4 },
+      { "name": "中央电子屏基座", "x": 34, "y": 27, "w": 4, "h": 4 }
+    ],
+    "facilities": [
+      {
+        "id": "F1",
+        "name": "临时展台 · 西",
+        "kind": "exhibit",
+        "effect": "block",
+        "center": [24.0, 10.0],
+        "length": 4.0,
+        "width": 2.0,
+        "rotation_deg": 0.0,
+        "movable": true,
+        "resizable": false,
+        "allowed_region": [[18.0, 7.0], [30.0, 7.0], [30.0, 13.0], [18.0, 13.0]]
+      },
+      {
+        "id": "F2",
+        "name": "临时展台 · 东",
+        "kind": "exhibit",
+        "effect": "block",
+        "center": [48.0, 10.0],
+        "length": 4.0,
+        "width": 2.0,
+        "rotation_deg": 0.0,
+        "movable": true,
+        "resizable": false,
+        "allowed_region": [[42.0, 7.0], [54.0, 7.0], [54.0, 13.0], [42.0, 13.0]]
+      },
+      {
+        "id": "F3",
+        "name": "临时展台 · 北西",
+        "kind": "exhibit",
+        "effect": "block",
+        "center": [24.0, 36.0],
+        "length": 4.0,
+        "width": 2.0,
+        "rotation_deg": 0.0,
+        "movable": true,
+        "resizable": false,
+        "allowed_region": [[18.0, 34.0], [30.0, 34.0], [30.0, 38.0], [18.0, 38.0]]
+      },
+      {
+        "id": "F4",
+        "name": "临时展台 · 北东",
+        "kind": "exhibit",
+        "effect": "block",
+        "center": [48.0, 36.0],
+        "length": 4.0,
+        "width": 2.0,
+        "rotation_deg": 0.0,
+        "movable": true,
+        "resizable": false,
+        "allowed_region": [[42.0, 34.0], [54.0, 34.0], [54.0, 38.0], [42.0, 38.0]]
+      }
+    ]
+  },
+  "exits": [
+    { "id": "E1", "name": "南侧主出口", "side": "S", "offset": 31.0, "width": 10.0 },
+    { "id": "E2", "name": "西南出口", "side": "S", "offset": 12.0, "width": 3.0 },
+    { "id": "E3", "name": "东南出口", "side": "S", "offset": 57.0, "width": 3.0 },
+    { "id": "E4", "name": "西侧出口", "side": "W", "offset": 24.0, "width": 3.0 },
+    { "id": "E5", "name": "东侧出口", "side": "E", "offset": 24.0, "width": 3.0 },
+    { "id": "E6", "name": "北侧西出口", "side": "N", "offset": 15.0, "width": 3.0 },
+    { "id": "E7", "name": "北侧东出口", "side": "N", "offset": 54.0, "width": 3.0 },
+    { "id": "E8", "name": "东侧应急门", "side": "E", "offset": 34.0, "width": 2.5 }
+  ],
+  "crowd": {
+    "zones": [
+      { "id": "Z1", "name": "西看台", "polygon": [[2.0, 22.0], [10.0, 22.0], [10.0, 37.0], [2.0, 37.0]], "count": 380, "profile": "seated" },
+      { "id": "Z2", "name": "东看台", "polygon": [[62.0, 22.0], [70.0, 22.0], [70.0, 37.0], [62.0, 37.0]], "count": 380, "profile": "seated" },
+      { "id": "Z3", "name": "北西看台", "polygon": [[12.0, 40.0], [28.0, 40.0], [28.0, 45.0], [12.0, 45.0]], "count": 280, "profile": "seated" },
+      { "id": "Z4", "name": "北东看台", "polygon": [[44.0, 40.0], [60.0, 40.0], [60.0, 45.0], [44.0, 45.0]], "count": 280, "profile": "seated" },
+      { "id": "Z5", "name": "中央活动区", "polygon": [[16.0, 16.0], [56.0, 16.0], [56.0, 33.0], [16.0, 33.0]], "count": 850, "profile": "standing" },
+      { "id": "Z6", "name": "南侧大厅", "polygon": [[12.0, 2.0], [60.0, 2.0], [60.0, 6.0], [12.0, 6.0]], "count": 420, "profile": "standing" },
+      { "id": "Z7", "name": "西侧环廊", "polygon": [[10.0, 8.0], [14.0, 8.0], [14.0, 38.0], [10.0, 38.0]], "count": 180, "profile": "standing" },
+      { "id": "Z8", "name": "东侧环廊", "polygon": [[58.0, 8.0], [62.0, 8.0], [62.0, 38.0], [58.0, 38.0]], "count": 180, "profile": "standing" }
+    ]
+  },
+  "params": {
+    "walk_speed": 1.2,
+    "T": 360,
+    "dt": 0.1,
+    "jam_density": 4.0
+  }
+}
