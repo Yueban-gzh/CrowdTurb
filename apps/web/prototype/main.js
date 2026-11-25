@@ -237,24 +237,13 @@ function lerpVelocity(a, b, t) {
   ]));
 }
 
-// 返回 { density, velocity, frameLo, frameHi, alpha }
-function sampleFrames(frames, timeS) {
-  if (frames.length === 1) {
-    return { density: frames[0].density, velocity: frames[0].velocity, frameLo: 0, frameHi: 0, alpha: 0 };
-  }
+// 单帧采样（不插值）：直接返回预计算的帧对象，零分配。
+// 播放时用 nearest 帧即可——帧间隔本来就密（0.5 s），插值的视觉收益
+// 远小于每帧分配数千个数组对象带来的 GC 压力（这是之前卡死的主因）。
+function sampleNearest(frames, timeS) {
   let k = 0;
   while (k < frames.length - 2 && timeS > frames[k + 1].timeS) k++;
-  const lo = frames[k];
-  const hi = frames[k + 1];
-  const span = hi.timeS - lo.timeS;
-  const alpha = span > 0 ? Math.min(1, Math.max(0, (timeS - lo.timeS) / span)) : 0;
-  return {
-    density: lerpMatrix(lo.density, hi.density, alpha),
-    velocity: lerpVelocity(lo.velocity, hi.velocity, alpha),
-    frameLo: k,
-    frameHi: k + 1,
-    alpha,
-  };
+  return frames[k];
 }
 
 // ---------------------------------------------------------------------------
@@ -325,25 +314,25 @@ function makeExitLabel(text) {
   return sprite;
 }
 
-// 粒子圆形贴图：象牙白主体 + 深色描边环，在热力图任意密度配色上都清晰可辨
-// （无外部资源）
+// 粒子圆形贴图：纯白实心 + 深色描边环。
+// 描边确保粒子落在任何热力底色（蓝黄红）上都能分辨。
 function makeCircleTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 64;
   const ctx = canvas.getContext('2d');
-  const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 30);
+  const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 31);
   grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-  grad.addColorStop(0.55, 'rgba(255, 255, 255, 1)');
-  grad.addColorStop(0.72, 'rgba(238, 242, 247, 1)');
-  grad.addColorStop(0.8, 'rgba(24, 29, 38, 1)');   // 深色描边环
-  grad.addColorStop(0.9, 'rgba(24, 29, 38, 0.55)');
-  grad.addColorStop(1, 'rgba(24, 29, 38, 0)');
+  grad.addColorStop(0.60, 'rgba(255, 255, 255, 1)');
+  grad.addColorStop(0.68, 'rgba(20, 26, 36, 1)');   // 深色描边环
+  grad.addColorStop(0.80, 'rgba(20, 26, 36, 0.85)');
+  grad.addColorStop(1, 'rgba(20, 26, 36, 0)');      // 柔和外扩
   ctx.fillStyle = grad;
   ctx.beginPath();
-  ctx.arc(32, 32, 30, 0, Math.PI * 2);
+  ctx.arc(32, 32, 31, 0, Math.PI * 2);
   ctx.fill();
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
   return texture;
 }
 
@@ -632,48 +621,62 @@ function createParticles(scene) {
 // ---------------------------------------------------------------------------
 
 // 轨迹回放：按时间在相邻两帧之间线性插值每个 agent 的位置。
-// agent 可能在两帧之间出场（exit_events），因此以 id 求交集，缺席者不画。
-function createTrajectoryPoints(playback, colorHex) {
-  const maxAgents = playback.frames.reduce((m, f) => Math.max(m, f.agents.length), 0);
+// 性能要点（曾导致页面卡死）：
+//   · id → 帧内索引的映射在初始化时预建，不在每帧 new Map
+//   · 位置数组复用，不产生临时对象
+function createTrajectoryPoints(playback, colorHex, pointSize = 0.16) {
+  const frames = playback.frames;
+  const maxAgents = frames.reduce((m, f) => Math.max(m, f.agents.length), 0);
   const positions = new Float32Array(Math.max(maxAgents, 1) * 3);
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const posAttr = new THREE.BufferAttribute(positions, 3);
+  posAttr.setUsage(THREE.DynamicDrawUsage);
+  geometry.setAttribute('position', posAttr);
   geometry.setDrawRange(0, 0);
   const material = new THREE.PointsMaterial({
     map: makeCircleTexture(),
     color: colorHex,
-    size: 0.16,
+    size: pointSize,
     sizeAttenuation: true,
     transparent: true,
-    opacity: 0.97,
-    alphaTest: 0.05,
+    opacity: 1,
+    alphaTest: 0.08,
     depthWrite: false,
+    depthTest: false,      // 始终绘制在热力面之上
     toneMapped: false,
   });
   const points = new THREE.Points(geometry, material);
-  return { points, positions, maxAgents, count: 0 };
+
+  // 每帧预建 id → agent 索引（只建一次）
+  const idIndexPerFrame = frames.map((f) => {
+    const m = new Map();
+    for (let i = 0; i < f.agents.length; i++) m.set(f.agents[i].id, i);
+    return m;
+  });
+
+  return { points, positions, posAttr, maxAgents, count: 0, frames, idIndexPerFrame };
 }
 
-// 在 playback.frames 上采样 t 时刻的全部个体位置，写入 positions
-function updateTrajectoryPoints(holder, playback, timeS) {
-  const frames = playback.frames;
-  const { positions } = holder;
+// 在 playback.frames 上采样 t 时刻的全部个体位置，写入复用的 positions
+function updateTrajectoryPoints(holder, timeS) {
+  const { frames, idIndexPerFrame, positions } = holder;
   let n = 0;
   if (frames.length > 0) {
-    // 定位区间：最后一帧保持到结束
     let k = 0;
     while (k < frames.length - 2 && timeS > frames[k + 1].timeS) k++;
     const lo = frames[k];
     const hi = frames[Math.min(k + 1, frames.length - 1)];
     const span = hi.timeS - lo.timeS;
     const a = span > 0 ? Math.min(1, Math.max(0, (timeS - lo.timeS) / span)) : 0;
+    const hiIndex = idIndexPerFrame[Math.min(k + 1, frames.length - 1)];
+    const hiAgents = hi.agents;
 
-    const hiMap = new Map(hi.agents.map((ag) => [ag.id, ag]));
-    for (const agent of lo.agents) {
-      const next = hiMap.get(agent.id);
-      const x = next ? agent.x + (next.x - agent.x) * a : agent.x;
-      const y = next ? agent.y + (next.y - agent.y) * a : agent.y;
+    for (let i = 0; i < lo.agents.length; i++) {
       if (n >= holder.maxAgents) break;
+      const agent = lo.agents[i];
+      const j = hiIndex.get(agent.id);
+      const x = j === undefined ? agent.x : agent.x + (hiAgents[j].x - agent.x) * a;
+      const y = j === undefined ? agent.y : agent.y + (hiAgents[j].y - agent.y) * a;
       positions[n * 3] = x;
       positions[n * 3 + 1] = 0.55;
       positions[n * 3 + 2] = -y;
@@ -681,7 +684,7 @@ function updateTrajectoryPoints(holder, playback, timeS) {
     }
   }
   holder.points.geometry.setDrawRange(0, n);
-  holder.points.geometry.getAttribute('position').needsUpdate = true;
+  holder.posAttr.needsUpdate = true;
   holder.count = n;
 }
 
@@ -767,7 +770,7 @@ function updateParticles(particles, scene, density, velocity, dMax, dt) {
 // 2D 俯视图（数据坐标：x → 右，y → 上；canvas y 轴向下，需翻转）
 // ---------------------------------------------------------------------------
 
-function draw2d(canvas, scene, density, velocity, dMax, hover, exitCells, analysis, timeS) {
+function draw2d(canvas, scene, density, velocity, dMax, hover, exitCells, analysis, timeS, agents) {
   const ctx = canvas.getContext('2d');
   const { nx, ny, dx, dy, origin } = scene.grid;
   const W = canvas.width;
@@ -857,21 +860,43 @@ function draw2d(canvas, scene, density, velocity, dMax, hover, exitCells, analys
   ctx.fillStyle = '#66738a';
   ctx.fillText('绿色为出口，速度箭头应指向出口', ox, oy - 8);
 
-  // 分析热点叠加：仅显示当前时刻处于持续区间内的热点（D 的 ix/iy + 时段）
-  // 热点的 ix/iy 是聚合格的代表栅格，按 2 m 尺度绘制（与演示数据的聚合一致）。
-  // 通用化留待 D 在样例里显式给出聚合尺度后改为读字段。
+  // 分析热点叠加：仅显示当前时刻处于持续区间内的热点。
+  // 重要：热点的 ix/iy 是 D 按原始网格给出的，而 2D 视图可能显示降采样后的网格，
+  // 必须按同一比例换算，否则会画到画布外面（曾出现红框跑到场馆外）。
   if (analysis?.available && analysis.hotspots.length > 0 && Number.isFinite(timeS)) {
-    const HOTSPOT_CELLS = 4;  // 演示数据：4 个 0.5 m 栅格 = 2 m 聚合格
-    const sizePx = Math.max(cs * HOTSPOT_CELLS, 4);
+    const HOTSPOT_CELLS = 4;                       // 演示数据的聚合格：4 个原栅格
+    const srcNx = analysis.gridNx || nx;           // 热点坐标所在的原始网格宽
+    const ratio = nx / srcNx;                      // 原始网格 → 当前显示网格
+    const cellW = Math.max(HOTSPOT_CELLS * ratio, 1);
     for (const h of analysis.hotspots) {
       if (timeS < h.startS || timeS > h.endS) continue;
-      const px = ox + h.ix * cs;
-      const py = oy + (ny - 1 - h.iy - HOTSPOT_CELLS + 1) * cs;
-      ctx.fillStyle = 'rgba(255, 72, 61, 0.22)';
-      ctx.fillRect(px, py, sizePx, sizePx);
-      ctx.strokeStyle = 'rgba(255, 72, 61, 0.9)';
-      ctx.lineWidth = Math.max(1, cs * 0.12);
-      ctx.strokeRect(px, py, sizePx, sizePx);
+      const px = ox + h.ix * ratio * cs;
+      const py = oy + (ny - 1 - (h.iy * ratio + cellW - 1)) * cs;
+      const w = cellW * cs;
+      // 热点只描边 + 极淡填充：避免密集时把个体点和热力色完全盖住
+      ctx.fillStyle = 'rgba(255, 72, 61, 0.10)';
+      ctx.fillRect(px, py, w, w);
+      ctx.strokeStyle = 'rgba(255, 72, 61, 0.85)';
+      ctx.lineWidth = Math.max(1, cs * 0.14);
+      ctx.strokeRect(px, py, w, w);
+    }
+  }
+
+  // 个体位置（轨迹模式）：与 3D 中的点一致，白点 + 深色描边
+  if (agents && agents.length > 0) {
+    const { dx, dy, origin } = scene.grid;
+    const r = Math.max(2, cs * 0.28);
+    for (const a of agents) {
+      const px = ox + ((a.x - origin[0]) / dx) * cs;
+      const py = oy + ny * cs - ((a.y - origin[1]) / dy) * cs;
+      if (px < ox - cs || px > ox + nx * cs + cs || py < oy - cs || py > oy + ny * cs + cs) continue;
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(20, 26, 36, 0.9)';
+      ctx.lineWidth = Math.max(1, r * 0.35);
+      ctx.stroke();
     }
   }
 
@@ -1356,7 +1381,14 @@ function init3d(scene, playback, fieldForHeat, dMax, analysis) {
 
   const heat = new THREE.Mesh(
     buildHeatSurface(sceneHeat),
-    new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false })
+    new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      toneMapped: false,
+      // 热力面半透明：粒子浮在其上时不会被底色吞掉（问题：热力+粒子互相看不清）
+      transparent: true,
+      opacity: 0.82,
+      depthWrite: false,
+    })
   );
   sceneRoot.add(heat);
 
@@ -1377,8 +1409,10 @@ function init3d(scene, playback, fieldForHeat, dMax, analysis) {
   if (particles) sceneRoot.add(particles.points);
 
   // 轨迹模式：真实个体点（C 输出的逐人位置，不是示意粒子）
+  // 点大小按场馆尺寸缩放，保证 4m 小馆到 60m 体育馆都看得清
+  const trajPointSize = Math.max(0.12, maxDim * 0.0065);
   const trajectoryPoints = playback.kind === 'trajectory'
-    ? createTrajectoryPoints(playback, 0x8ff0cd)
+    ? createTrajectoryPoints(playback, 0x8ff0cd, trajPointSize)
     : null;
   if (trajectoryPoints) sceneRoot.add(trajectoryPoints.points);
 
@@ -1454,18 +1488,51 @@ function init3d(scene, playback, fieldForHeat, dMax, analysis) {
     speed = Number(speedSel.value);
   });
   canvas2d.addEventListener('mousemove', (evt) => {
-    hover = cellFromMouse(canvas2d, scene, evt);
+    hover = cellFromMouse(canvas2d, scene2d, evt);
   });
   canvas2d.addEventListener('mouseleave', () => {
     hover = null;
   });
 
+  // --- 3D / 2D 视图切换 ---
+  let activeView = '3d';
+  const view3dEl = document.getElementById('viewport-3d');
+  const view2dEl = document.getElementById('view-2d-pane');
+  const tab3d = document.getElementById('tab-3d');
+  const tab2d = document.getElementById('tab-2d');
+  const viewToolbar = document.querySelector('.view-toolbar');
+
+  function setView2dEnabled(on) {
+    activeView = on ? '2d' : '3d';
+    view3dEl.classList.toggle('hidden', on);
+    view2dEl.classList.toggle('hidden', !on);
+    tab3d.classList.toggle('active', !on);
+    tab2d.classList.toggle('active', on);
+    tab3d.setAttribute('aria-selected', String(!on));
+    tab2d.setAttribute('aria-selected', String(on));
+    if (viewToolbar) viewToolbar.classList.toggle('hidden', on);
+    if (!on) {
+      // 回到 3D 时按新尺寸重设渲染器（3D 容器在隐藏期间尺寸为 0）
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w > 0 && h > 0) {
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+    }
+  }
+  if (tab3d) tab3d.addEventListener('click', () => setView2dEnabled(false));
+  if (tab2d) tab2d.addEventListener('click', () => setView2dEnabled(true));
+
   window.addEventListener('resize', () => {
     const w = container.clientWidth;
     const h = container.clientHeight;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
+    if (w > 0 && h > 0) {
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
   });
 
   function tick(now) {
@@ -1478,44 +1545,67 @@ function init3d(scene, playback, fieldForHeat, dMax, analysis) {
       slider.value = String(Math.round(((tau - tMin) / span) * 1000));
     }
 
-    // 渲染用的帧数据已是粗网格：2D 与 3D 各用自己的聚合尺度
-    const sampleHeat = sampleFrames(fieldHeat.frames, tau);
-    const sample2d = stride2d === agg3d ? sampleHeat : sampleFrames(field2d.frames, tau);
+    // 采样用最近帧（零分配）；density/velocity 直接引用预计算数组
+    const sampleHeat = sampleNearest(fieldHeat.frames, tau);
+    const sample2d = stride2d === agg3d ? sampleHeat : sampleNearest(field2d.frames, tau);
 
-    updateHeatSurface(heat, sceneHeat, sampleHeat.density, dMax);
-    if (trajectoryPoints) {
-      // 轨迹模式：位置直接来自 C 的轨迹（只受时间轴驱动，不自行积分）
-      updateTrajectoryPoints(trajectoryPoints, playback, tau);
-    } else if (playing) {
-      // 暂停即全场冻结：粒子不推进、不重投放；
-      // 热力图与 2D 视图仍每帧刷新，保证暂停时拖动时间轴 / 悬停查看有效
-      updateParticles(particles, scene, sample2d.density, sample2d.velocity, dMax, dt * speed);
+    // 只更新当前可见视图，避免隐藏视图做无用功
+    if (activeView === '3d') {
+      updateHeatSurface(heat, sceneHeat, sampleHeat.density, dMax);
+      if (trajectoryPoints) {
+        updateTrajectoryPoints(trajectoryPoints, tau);
+      } else if (playing) {
+        updateParticles(particles, scene, sample2d.density, sample2d.velocity, dMax, dt * speed);
+      }
+    } else {
+      // 2D 视图：轨迹模式下叠加个体位置（与 3D 的点同源）
+      const frame2d = playback.kind === 'trajectory'
+        ? sampleNearest(playback.frames, tau)
+        : null;
+      draw2d(canvas2d, scene2d,
+        sample2d.density, sample2d.velocity, dMax, hover, exitCells, analysis, tau,
+        frame2d ? frame2d.agents : null);
     }
-    draw2d(canvas2d, scene2d,
-      sample2d.density, sample2d.velocity, dMax, hover, exitCells, analysis, tau);
 
-    // 相机补间（透视 / 俯视切换）
-    if (camTween) {
-      const k = Math.min(1, (now - camTween.start) / camTween.dur);
-      const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-      camera.position.lerpVectors(camTween.fromPos, camTween.toPos, e);
-      controls.target.lerpVectors(camTween.fromTarget, camTween.toTarget, e);
-      if (k >= 1) camTween = null;
+    if (activeView === '3d') {
+      // 相机补间（透视 / 俯视切换）
+      if (camTween) {
+        const k = Math.min(1, (now - camTween.start) / camTween.dur);
+        const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        camera.position.lerpVectors(camTween.fromPos, camTween.toPos, e);
+        controls.target.lerpVectors(camTween.fromTarget, camTween.toTarget, e);
+        if (k >= 1) camTween = null;
+      }
+      controls.update();
     }
-    controls.update();
 
-    timeLabel.textContent = `t = ${tau.toFixed(2)} s（帧 ${sample2d.frameLo}→${sample2d.frameHi}，插值 α=${sample2d.alpha.toFixed(2)}）`;
-    if (hover) {
+    timeLabel.textContent = `t = ${tau.toFixed(2)} s`;
+    if (hover && activeView === '2d') {
       // 悬停读数对应 2D 视图实际显示的数据（细网格），不是 3D 的聚合结果
       const [vx, vy] = sample2d.velocity[hover.iy][hover.ix];
       cellInfo.textContent = `单元 (ix=${hover.ix}, iy=${hover.iy})：density=${sample2d.density[hover.iy][hover.ix].toFixed(2)} 人/m²，v=[${vx.toFixed(2)}, ${vy.toFixed(2)}] m/s${scene2d.walkable[hover.iy][hover.ix] ? '' : '（不可通行）'}`;
-    } else {
+    } else if (activeView === '2d') {
       cellInfo.textContent = '将鼠标移到俯视图上查看单元数据。';
     }
 
     renderer.render(sceneRoot, camera);
-    requestAnimationFrame(tick);
+    // 页面在后台/被遮挡时 rAF 会暂停；用 setTimeout 兜底，保证播放不中断
+    // （切回前台后 rAF 恢复，setTimeout 分支自动退出）
+    if (document.visibilityState === 'hidden' || window.__forceTimers) {
+      setTimeout(() => tick(performance.now()), 33);
+    } else {
+      requestAnimationFrame(tick);
+    }
   }
 
-  requestAnimationFrame(tick);
+  // 调试钩子：在某些嵌入环境里 rAF 完全不被调度，
+  // 用 ?driver=timer 可强制走 setTimeout 驱动，便于验证与录屏。
+  if (new URLSearchParams(location.search).get('driver') === 'timer') {
+    window.__forceTimers = true;
+  }
+  if (window.__forceTimers) {
+    setTimeout(() => tick(performance.now()), 33);
+  } else {
+    requestAnimationFrame(tick);
+  }
 }

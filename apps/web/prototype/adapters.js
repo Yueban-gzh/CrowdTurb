@@ -288,6 +288,9 @@ export function adaptAnalysis(a) {
     available: true,
     status: a.status || 'normal',
     source: a.source,
+    // 热点 ix/iy 所在的网格尺寸：2D 视图若降采样，需按此换算
+    gridNx: a.grid?.nx ?? null,
+    gridNy: a.grid?.ny ?? null,
     timeRange: a.time_range_s || null,
     threshold: a.threshold
       ? { value: a.threshold.value, unit: a.threshold.unit, basis: a.threshold.basis }
