@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArchFlow AI — 场馆与初始场配置编辑器 v0.2（成员 A）</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg:#080e2a; --panel:#101938; --card:#17234a; --card-hover:#1f2d58;
+    --field:#0b1433; --border:#2b3a68; --border-strong:#405483;
+    --text:#f4f2ff; --muted:#b8c1e6; --faint:#8290bc;
+    --accent:#6096fc; --accent-deep:#112b8c; --ok:#77d6c2;
+    --warn:#fcb4c5; --danger:#fb7a8f; --facility:#fb7a8f;
+    --font-sans:"Inter","HarmonyOS Sans SC","MiSans",system-ui,-apple-system,BlinkMacSystemFont,
+      "Segoe UI","PingFang SC","Microsoft YaHei UI","Microsoft YaHei",sans-serif;
+    --font-mono:"Cascadia Code","SFMono-Regular",Consolas,monospace;
+    --text-xs:11px; --text-sm:12px; --text-base:13px; --text-md:14px; --text-lg:16px;
+    --weight-regular:400; --weight-semibold:600;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; height:100vh; display:flex; flex-direction:column; overflow:hidden;
+    font:var(--text-base)/1.5 var(--font-sans); font-weight:var(--weight-regular);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    color:var(--text); background:var(--bg); }
+  b,strong { font-weight:var(--weight-semibold); }
+  ::-webkit-scrollbar { width:9px; height:9px; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:6px; border:2px solid var(--panel); }
+  ::-webkit-scrollbar-track { background:transparent; }
+  header { min-height:52px; background:#070c22; border-bottom:1px solid var(--border);
+    padding:8px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .logo { width:22px; height:22px; border-radius:7px; flex:none;
+    background:linear-gradient(135deg,#fb7a8f,#aab6fd 52%,#6096fc); box-shadow:0 0 16px rgba(96,150,252,.34); }
+  header h1 { font-size:var(--text-lg); font-weight:var(--weight-semibold); margin:0; letter-spacing:.01em; }
+  .chip { font-size:var(--text-xs); color:var(--muted); border:1px solid var(--border-strong);
+    border-radius:999px; padding:1px 9px; white-space:nowrap; }
+  .summary { margin-left:auto; display:flex; align-items:center; gap:13px; color:var(--muted);
+    font-size:var(--text-sm); flex-wrap:wrap; }
+  .summary b { color:var(--text); font-weight:var(--weight-semibold); font-variant-numeric:tabular-nums; }
+  .summary i { font-style:normal; margin-right:4px; color:var(--faint); }
+  .summary .sep { width:1px; height:15px; background:var(--border-strong); }
+  .pill { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:2px 10px;
+    font-size:var(--text-xs); border:1px solid transparent; white-space:nowrap; }
+  .pill .dot { width:7px; height:7px; border-radius:50%; }
+  .pill.ok { color:#b8f2e5; background:rgba(119,214,194,.1); border-color:rgba(119,214,194,.34); }
+  .pill.ok .dot { background:var(--ok); }
+  .pill.warn { color:#ffd9e4; background:rgba(252,180,197,.1); border-color:rgba(252,180,197,.36); }
+  .pill.warn .dot { background:var(--warn); }
+  .pill.error { color:#ffc4d0; background:rgba(251,122,143,.11); border-color:rgba(251,122,143,.4); }
+  .pill.error .dot { background:var(--danger); }
+  .pill.idle { color:var(--muted); background:var(--card); border-color:var(--border); }
+  .pill.idle .dot { background:var(--faint); }
+
+  main { flex:1; display:flex; min-height:0; }
+  #canvasWrap { flex:1; position:relative; min-width:420px; overflow:hidden;
+    background:radial-gradient(1200px 850px at 48% 42%,#1b2550 0%,#080e2a 76%); }
+  canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+  #panel { width:380px; flex:none; background:var(--panel); border-left:1px solid var(--border);
+    overflow-y:auto; padding:14px 15px 24px; font-family:var(--font-sans);
+    font-size:var(--text-md); line-height:1.55; font-weight:var(--weight-regular); }
+  #panel button { font-size:var(--text-base); }
+  .map-title { position:absolute; left:18px; top:16px; pointer-events:none; z-index:2; }
+  .map-title .eyebrow { color:#fcb4c5; font-size:var(--text-xs); letter-spacing:.14em; text-transform:uppercase; }
+  .map-title .name { margin-top:2px; font-size:var(--text-lg); font-weight:var(--weight-semibold); color:#f1efff; }
+  .map-title .sub { color:#aab6fd; font-size:var(--text-sm); margin-top:2px; }
+  .layers { position:absolute; right:16px; top:16px; z-index:3; display:flex; gap:5px; flex-wrap:wrap;
+    padding:5px; border:1px solid rgba(170,182,253,.26); border-radius:9px; background:rgba(8,14,42,.78);
+    backdrop-filter:blur(8px); }
+  .layers label { display:flex; align-items:center; gap:5px; color:#c6cef0; font-size:var(--text-xs);
+    padding:3px 6px; border-radius:5px; cursor:pointer; }
+  .layers label:hover { background:rgba(96,150,252,.16); }
+  .layers input { accent-color:var(--accent); margin:0; }
+  .legend { position:absolute; left:18px; bottom:17px; z-index:2; display:grid; grid-template-columns:repeat(2,auto);
+    gap:5px 14px; padding:9px 11px; border:1px solid rgba(170,182,253,.22); border-radius:9px;
+    background:rgba(8,14,42,.78); backdrop-filter:blur(8px); color:#bdc6e8; font-size:var(--text-xs); pointer-events:none; }
+  .legend span { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .legend i { width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .map-tools { position:absolute; right:16px; bottom:17px; z-index:3; display:flex; flex-direction:column; gap:6px; }
+  .map-tools button { width:30px; height:30px; justify-content:center; padding:0; font-size:16px;
+    background:rgba(8,14,42,.82); border-color:rgba(170,182,253,.3); }
+  .north { position:absolute; right:57px; bottom:21px; z-index:2; color:#aab6fd; font-size:var(--text-xs); text-align:center; pointer-events:none; }
+  .north b { display:block; font-size:var(--text-lg); line-height:1; color:#d9dfff; }
+  #coordReadout { position:absolute; right:17px; top:58px; z-index:2; color:#8998c7;
+    font:var(--text-xs)/1.4 var(--font-mono); pointer-events:none; }
+
+  .toolbar { display:grid; gap:8px; margin-bottom:9px; }
+  .toolbar-caption { margin:0 0 4px; color:var(--faint); font-size:var(--text-xs); letter-spacing:.04em; }
+  .toolbar-actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
+  .toolbar-actions button { justify-content:center; padding:6px 4px; white-space:nowrap; }
+  .seg { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:1px solid var(--border); border-radius:7px; overflow:hidden; background:var(--field); }
+  .seg button { justify-content:center; border:0; border-radius:0; background:transparent; padding:6px 4px; white-space:nowrap; }
+  .seg button + button { border-left:1px solid var(--border); }
+  .seg button.active { background:var(--accent); color:#08142f; }
+  button,input,select,textarea { font-family:inherit; }
+  button { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border:1px solid var(--border);
+    border-radius:9px; background:var(--card); color:var(--text); cursor:pointer;
+    font-size:var(--text-base); font-weight:var(--weight-regular);
+    transition:background .15s,border-color .15s,color .15s; }
+  button:hover { background:var(--card-hover); border-color:var(--border-strong); }
+  button.primary { background:linear-gradient(180deg,#aab6fd,#6096fc); border-color:#6096fc; color:#08142f; font-weight:var(--weight-semibold); }
+  button.primary:hover { background:linear-gradient(180deg,#bcc6ff,#74a7ff); }
+  button.ghost-danger { background:transparent; color:var(--danger); }
+  button.ghost-danger:hover { background:rgba(251,122,143,.12); border-color:rgba(251,122,143,.48); }
+  button.active { background:var(--accent); border-color:var(--accent); color:#08142f; font-weight:var(--weight-semibold); }
+  button svg { width:13px; height:13px; flex:none; }
+  .iconbtn { padding:2px; width:23px; height:23px; justify-content:center; border-radius:6px;
+    color:var(--muted); background:transparent; border-color:transparent; }
+  .iconbtn:hover { color:var(--danger); background:rgba(251,122,143,.12); border-color:transparent; }
+  .iconbtn svg { width:11px; height:11px; }
+
+  h3 { font-size:var(--text-sm); font-weight:var(--weight-semibold); color:var(--faint); letter-spacing:.04em; margin:18px 0 9px;
+    display:flex; align-items:center; gap:8px; }
+  h3::after { content:""; flex:1; height:1px; background:var(--border); }
+  .row { display:flex; gap:6px; align-items:center; margin:5px 0; flex-wrap:wrap; }
+  .param-form { display:grid; gap:8px; }
+  .param-row { display:grid; grid-template-columns:120px minmax(0,1fr); gap:10px; align-items:center; min-height:36px; }
+  .param-label { color:var(--muted); font-size:var(--text-base); line-height:1.4; }
+  .param-control { min-width:0; display:flex; align-items:center; gap:6px; }
+  .param-control > input,.param-control > select { width:100%; min-width:0; }
+  .param-control .readonly { display:block; width:100%; padding:6px 9px; border:1px solid var(--border);
+    border-radius:9px; background:rgba(11,20,51,.55); color:var(--text); font-size:var(--text-base); }
+  .actions { display:flex; gap:7px; flex-wrap:wrap; align-items:center; margin-top:11px; }
+  input,select { padding:6px 8px; border:1px solid var(--border); border-radius:9px; font-size:var(--text-base);
+    width:100%; background:var(--field); color:var(--text); font-variant-numeric:tabular-nums; }
+  input:focus,select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(96,150,252,.22); }
+  input.wide { width:100%; }
+  input[type=checkbox] { width:auto; accent-color:var(--accent); }
+  .item { border:1px solid var(--border); border-radius:10px; background:var(--card); padding:8px 10px;
+    margin:7px 0; cursor:pointer; font-size:var(--text-base); transition:border-color .15s,background .15s; }
+  .item:hover { background:var(--card-hover); }
+  .item.sel { border-color:var(--accent); background:rgba(96,150,252,.1); }
+  .item.fac.sel { border-color:var(--facility); background:rgba(251,122,143,.1); }
+  .item .nm { font-weight:var(--weight-semibold); }
+  .item .sub { color:var(--muted); }
+  .swatch { display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:6px; vertical-align:baseline; }
+  .mini { font-size:var(--text-xs); color:var(--muted); white-space:nowrap; }
+  .exit-head { display:grid; grid-template-columns:34px minmax(0,1fr) 23px; gap:6px; align-items:center; margin:0; }
+  .exit-head input { width:100%; min-width:0; }
+  .exit-props { display:grid; gap:7px; margin-top:8px; }
+  .tag { font-style:normal; font-size:var(--text-xs); color:var(--warn); border:1px solid rgba(252,180,197,.4);
+    border-radius:5px; padding:0 4px; margin-left:5px; }
+  .prob { border-radius:9px; padding:8px 10px; margin:6px 0; font-size:var(--text-base); display:flex; gap:8px;
+    align-items:baseline; border:1px solid transparent; }
+  .prob .pdot { flex:none; width:7px; height:7px; border-radius:50%; position:relative; top:-1px; }
+  .prob.error { background:rgba(251,122,143,.1); border-color:rgba(251,122,143,.34); color:#ffc4d0; }
+  .prob.error .pdot { background:var(--danger); }
+  .prob.warning { background:rgba(252,180,197,.09); border-color:rgba(252,180,197,.32); color:#ffd9e4; }
+  .prob.warning .pdot { background:var(--warn); }
+  .hint { color:var(--muted); font-size:var(--text-sm); }
+  .val-ok { color:var(--ok); font-weight:var(--weight-semibold); }
+  .val-over { color:var(--warn); font-weight:var(--weight-semibold); }
+  .facility-badge { color:#ffd0dc; border:1px solid rgba(251,122,143,.42); background:rgba(251,122,143,.1);
+    border-radius:6px; padding:0 5px; font-size:var(--text-xs); }
+  kbd { font:var(--text-xs)/1 var(--font-mono); background:var(--field); border:1px solid var(--border-strong);
+    border-bottom-width:2px; border-radius:5px; padding:1px 5px; color:var(--muted); }
+  .checkline { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:var(--text-base); }
+  .mode-hint { margin:0 0 9px; padding:9px 11px; border:1px solid var(--border); border-radius:9px;
+    background:var(--field); color:var(--muted); font-size:var(--text-sm); line-height:1.6; }
+  .mode-hint b { color:var(--accent); font-weight:var(--weight-semibold); margin-right:6px; }
+  .action-notice { margin:0 0 9px; padding:9px 11px; border:1px solid rgba(96,150,252,.34);
+    border-radius:9px; background:rgba(96,150,252,.09); color:#dce7ff; font-size:var(--text-sm); }
+  .action-notice:empty { display:none; }
+  .action-notice.success { border-color:rgba(119,214,194,.34); background:rgba(119,214,194,.09); color:#b8f2e5; }
+  .action-notice.error { border-color:rgba(251,122,143,.4); background:rgba(251,122,143,.1); color:#ffc4d0; }
+  @media (max-width:900px) {
+    #panel { width:344px; padding-left:12px; padding-right:12px; }
+    #canvasWrap { min-width:360px; }
+    .param-row { grid-template-columns:112px minmax(0,1fr); }
+  }
+  @media (max-width:680px) {
+    #panel { width:320px; }
+    #canvasWrap { min-width:300px; }
+    .param-row { grid-template-columns:104px minmax(0,1fr); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo"></span>
+  <h1>ArchFlow AI · 场馆与初始场配置</h1>
+  <span class="chip">v0.2 · 成员 A</span>
+  <div class="summary" id="summary">—</div>
+</header>
+<main>
+  <div id="canvasWrap">
+    <canvas id="cv"></canvas>
+    <div class="map-title">
+      <div class="eyebrow">Venue / Initial Field</div>
+      <div class="name" id="mapName">综合体育馆</div>
+      <div class="sub" id="mapSub">平面布置与初始人群配置</div>
+    </div>
+    <div class="layers">
+      <label><input type="checkbox" id="layerZones" checked>人群</label>
+      <label><input type="checkbox" id="layerFacilities" checked>设施</label>
+      <label><input type="checkbox" id="layerRegions" checked>允许区</label>
+      <label><input type="checkbox" id="layerGrid" checked>网格</label>
+    </div>
+    <div id="coordReadout">x — · y —</div>
+    <div class="legend">
+      <span><i style="background:#aab6fd"></i>坐席人群</span>
+      <span><i style="background:#fcb4c5"></i>站立/流动</span>
+      <span><i style="background:#c9c3dc"></i>固定障碍</span>
+      <span><i style="background:#fb7a8f"></i>可移动展台</span>
+      <span><i style="background:#6096fc"></i>出口</span>
+      <span><i style="background:transparent;border:1px dashed #fb7a8f"></i>允许移动区</span>
+    </div>
+    <div class="north"><b>↑</b>N</div>
+    <div class="map-tools">
+      <button id="zoomIn" title="放大">+</button>
+      <button id="zoomOut" title="缩小">−</button>
+      <button id="fitView" title="适应窗口">⌂</button>
+    </div>
+  </div>
+  <div id="panel">
+    <div class="toolbar">
+      <div>
+        <div class="toolbar-caption">地图操作</div>
+        <div class="seg">
+          <button id="btnSelect" class="active" title="单击地图对象进行选择与编辑">选择</button>
+          <button id="btnZone" title="切换模式后，在地图上拖拽创建人群区">创建人群区</button>
+          <button id="btnObstacle" title="切换模式后，在地图上拖拽创建固定障碍">创建障碍</button>
+          <button id="btnFacility" title="切换模式后，在地图上拖拽创建可移动展台">创建展台</button>
+        </div>
+      </div>
+      <div>
+        <div class="toolbar-caption">场景操作</div>
+        <div class="toolbar-actions">
+          <button id="btnCheck" class="primary" title="检查越界、重叠、出口、通路和人群覆盖">校验</button>
+          <button id="btnSave" class="primary" title="校验后下载当前场景 JSON 文件">保存 JSON</button>
+          <button id="btnLoad" title="打开本地场景 JSON 文件">加载 JSON</button>
+          <button id="btnReset" class="ghost-danger" title="恢复内置复杂场馆示例，需确认">重置</button>
+        </div>
+      </div>
+      <input type="file" id="fileIn" accept=".json" style="display:none">
+    </div>
+    <div id="modeHint" class="mode-hint" role="status" aria-live="polite"></div>
+    <div id="actionNotice" class="action-notice" role="status" aria-live="polite"></div>
+    <div id="problemBox"></div>
+    <h3>场馆参数</h3>
+    <div id="geoBox"></div>
+    <h3>出口 · D 的可调参数</h3>
+    <div id="exitBox"></div>
+    <h3>可移动设施 · D 的候选输入</h3>
+    <div id="facilityBox"></div>
+    <h3>选中对象</h3>
+    <div id="selBox"></div>
+    <h3>人群区列表</h3>
+    <div id="zoneBox"></div>
+  </div>
+</main>
+<script>
+"use strict";
+
+const VERSION = "0.2";
+const EPS = 1e-9;
+const JAM_DEFAULT = 4.0;
+const WALL_MARGIN = 0.3;
+const DEFAULT_MIN_PASSAGE = 0.9;
+const DEFAULT_EXIT_CLEARANCE = 0.5;
+
+const I = {
+  plus:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M8 3.2v9.6M3.2 8h9.6"/></svg>',
+  trash:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 4.3h10.4M6.3 4.3V2.8h3.4v1.5M4.3 4.3l.7 9.2h6l.7-9.2"/><path d="M6.7 7v4.2M9.3 7v4.2"/></svg>',
+  x:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6"/></svg>'
+};
+
+function defaultScene() {
+  return {
+    version: VERSION,
+    meta: {
+      name:"滨海文化中心 · 综合体育馆", author:"A", created:new Date().toISOString().slice(0,10),
+      revision:1, parent_revision:null,
+      notes:"v0.2 复杂场馆示例：分层看台、中央活动区、环形通道、固定功能房和四个可移动临时展台。参考公共建筑平面语言，非任何真实场馆复制。"
+    },
+    geometry: {
+      size:[72.0,48.0], resolution:0.5,
+      walls:[
+        [14,15,22,15],[50,15,58,15],[14,34,22,34],[50,34,58,34],
+        [14,18,14,30],[58,18,58,30]
+      ],
+      layout_policy:{ min_passage_width:1.2, exit_clearance:0.8 },
+      obstacles:[
+        { name:"主舞台", x:30, y:42, w:12, h:5 },
+        { name:"西侧器材库", x:2, y:39, w:9, h:7 },
+        { name:"东侧器材库", x:61, y:39, w:9, h:7 },
+        { name:"西看台设备间", x:2, y:15, w:8, h:6 },
+        { name:"东看台设备间", x:62, y:15, w:8, h:6 },
+        { name:"西南寄存区", x:2, y:2, w:8, h:4 },
+        { name:"东南办公区", x:62, y:2, w:8, h:4 },
+        { name:"中央电子屏基座", x:34, y:27, w:4, h:4 }
+      ],
+      facilities:[
+        { id:"F1", name:"临时展台 · 西", kind:"exhibit", effect:"block", center:[24,10], length:4, width:2,
+          rotation_deg:0, movable:true, resizable:false,
+          allowed_region:[[18,7],[30,7],[30,13],[18,13]] },
+        { id:"F2", name:"临时展台 · 东", kind:"exhibit", effect:"block", center:[48,10], length:4, width:2,
+          rotation_deg:0, movable:true, resizable:false,
+          allowed_region:[[42,7],[54,7],[54,13],[42,13]] },
+        { id:"F3", name:"临时展台 · 北西", kind:"exhibit", effect:"block", center:[24,36], length:4, width:2,
+          rotation_deg:0, movable:true, resizable:false,
+          allowed_region:[[18,34],[30,34],[30,38],[18,38]] },
+        { id:"F4", name:"临时展台 · 北东", kind:"exhibit", effect:"block", center:[48,36], length:4, width:2,
+          rotation_deg:0, movable:true, resizable:false,
+          allowed_region:[[42,34],[54,34],[54,38],[42,38]] }
+      ]
+    },
+    exits:[
+      { id:"E1", name:"南侧主出口", side:"S", offset:31, width:10 },
+      { id:"E2", name:"西南出口", side:"S", offset:12, width:3 },
+      { id:"E3", name:"东南出口", side:"S", offset:57, width:3 },
+      { id:"E4", name:"西侧出口", side:"W", offset:24, width:3 },
+      { id:"E5", name:"东侧出口", side:"E", offset:24, width:3 },
+      { id:"E6", name:"北侧西出口", side:"N", offset:15, width:3 },
+      { id:"E7", name:"北侧东出口", side:"N", offset:54, width:3 },
+      { id:"E8", name:"东侧应急门", side:"E", offset:34, width:2.5 }
+    ],
+    crowd:{ zones:[
+      { id:"Z1", name:"西看台", polygon:[[2,22],[10,22],[10,37],[2,37]], count:380, profile:"seated" },
+      { id:"Z2", name:"东看台", polygon:[[62,22],[70,22],[70,37],[62,37]], count:380, profile:"seated" },
+      { id:"Z3", name:"北西看台", polygon:[[12,40],[28,40],[28,45],[12,45]], count:280, profile:"seated" },
+      { id:"Z4", name:"北东看台", polygon:[[44,40],[60,40],[60,45],[44,45]], count:280, profile:"seated" },
+      { id:"Z5", name:"中央活动区", polygon:[[16,16],[56,16],[56,33],[16,33]], count:850, profile:"standing" },
+      { id:"Z6", name:"南侧大厅", polygon:[[12,2],[60,2],[60,6],[12,6]], count:420, profile:"standing" },
+      { id:"Z7", name:"西侧环廊", polygon:[[10,8],[14,8],[14,38],[10,38]], count:180, profile:"standing" },
+      { id:"Z8", name:"东侧环廊", polygon:[[58,8],[62,8],[62,38],[58,38]], count:180, profile:"standing" }
+    ]},
+    params:{ walk_speed:1.2, T:360, dt:0.1, jam_density:4.0 }
+  };
+}
+
+let scene = defaultScene();
+let sel = null;
+let mode = "select";
+let dragStart = null, dragNow = null;
+let problems = null;
+let badCells = [];
+let dirty = false;
+let showZones = true, showFacilities = true, showRegions = true, showGrid = true;
+
+function esc(s) { return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const facilities = () => scene.geometry.facilities || [];
+const layoutPolicy = () => Object.assign({min_passage_width:DEFAULT_MIN_PASSAGE,exit_clearance:DEFAULT_EXIT_CLEARANCE},scene.geometry.layout_policy||{});
+
+function polyArea(poly) { let s=0; for(let k=0;k<poly.length;k++){ const a=poly[k],b=poly[(k+1)%poly.length]; s+=a[0]*b[1]-b[0]*a[1]; } return Math.abs(s)/2; }
+function centroid(poly) { let x=0,y=0; for(const p of poly){x+=p[0];y+=p[1];} return [x/poly.length,y/poly.length]; }
+function pointOnSegment(px,py,x1,y1,x2,y2,tol=EPS) {
+  const cross=(x2-x1)*(py-y1)-(y2-y1)*(px-x1);
+  if(Math.abs(cross)>tol*Math.max(1,Math.hypot(x2-x1,y2-y1))) return false;
+  return px>=Math.min(x1,x2)-tol&&px<=Math.max(x1,x2)+tol&&py>=Math.min(y1,y2)-tol&&py<=Math.max(y1,y2)+tol;
+}
+function pointInPolygon(px,py,poly,includeBoundary=false) {
+  if(includeBoundary) for(let k=0;k<poly.length;k++){
+    const a=poly[k],b=poly[(k+1)%poly.length];
+    if(pointOnSegment(px,py,a[0],a[1],b[0],b[1])) return true;
+  }
+  let inside=false;
+  for(let k=0;k<poly.length;k++){
+    const a=poly[k],b=poly[(k+1)%poly.length];
+    if((a[1]>py)!==(b[1]>py)){
+      const xin=a[0]+(py-a[1])*(b[0]-a[0])/(b[1]-a[1]);
+      if(px<xin) inside=!inside;
+    }
+  }
+  return inside;
+}
+function pointStrictlyInside(px,py,poly) {
+  for(let k=0;k<poly.length;k++){
+    const a=poly[k],b=poly[(k+1)%poly.length];
+    if(pointOnSegment(px,py,a[0],a[1],b[0],b[1])) return false;
+  }
+  return pointInPolygon(px,py,poly,false);
+}
+function facilityPolygon(f) {
+  const [cx,cy]=f.center, hl=f.length/2, hw=f.width/2, th=f.rotation_deg*Math.PI/180, c=Math.cos(th), s=Math.sin(th);
+  return [[-hl,-hw],[hl,-hw],[hl,hw],[-hl,hw]].map(([x,y])=>[cx+x*c-y*s,cy+x*s+y*c]);
+}
+function rectPolygon(x,y,w,h) { return [[x,y],[x+w,y],[x+w,y+h],[x,y+h]]; }
+function polygonInsideRect(poly,x0,y0,x1,y1,tol=EPS) { return poly.every(p=>p[0]>=x0-tol&&p[0]<=x1+tol&&p[1]>=y0-tol&&p[1]<=y1+tol); }
+function orient(ax,ay,bx,by,cx,cy) { return (bx-ax)*(cy-ay)-(by-ay)*(cx-ax); }
+function segmentsProperlyIntersect(p1,p2,q1,q2,tol=EPS) {
+  const o1=orient(p1[0],p1[1],p2[0],p2[1],q1[0],q1[1]);
+  const o2=orient(p1[0],p1[1],p2[0],p2[1],q2[0],q2[1]);
+  const o3=orient(q1[0],q1[1],q2[0],q2[1],p1[0],p1[1]);
+  const o4=orient(q1[0],q1[1],q2[0],q2[1],p2[0],p2[1]);
+  return ((o1>tol&&o2<-tol)||(o1<-tol&&o2>tol))&&((o3>tol&&o4<-tol)||(o3<-tol&&o4>tol));
+}
+function convexOverlap(a,b,tol=EPS) {
+  for(const poly of [a,b]) for(let k=0;k<poly.length;k++){
+    const p=poly[k],q=poly[(k+1)%poly.length];
+    let ax=-(q[1]-p[1]),ay=q[0]-p[0]; const n=Math.hypot(ax,ay);
+    if(n<EPS) continue; ax/=n; ay/=n;
+    const pa=a.map(v=>v[0]*ax+v[1]*ay),pb=b.map(v=>v[0]*ax+v[1]*ay);
+    if(Math.max(...pa)<=Math.min(...pb)+tol||Math.max(...pb)<=Math.min(...pa)+tol) return false;
+  }
+  return true;
+}
+function segmentPolygonInterior(p1,p2,poly) {
+  if(pointStrictlyInside(p1[0],p1[1],poly)||pointStrictlyInside(p2[0],p2[1],poly)) return true;
+  for(let k=0;k<poly.length;k++) if(segmentsProperlyIntersect(p1,p2,poly[k],poly[(k+1)%poly.length])) return true;
+  return false;
+}
+function polygonInsidePolygon(inner,outer,tol=EPS) {
+  if(!inner.every(p=>pointInPolygon(p[0],p[1],outer,true))) return false;
+  for(let i=0;i<inner.length;i++) for(let j=0;j<outer.length;j++)
+    if(segmentsProperlyIntersect(inner[i],inner[(i+1)%inner.length],outer[j],outer[(j+1)%outer.length],tol)) return false;
+  for(const p of outer) if(pointStrictlyInside(p[0],p[1],inner)) return false;
+  for(let i=0;i<inner.length;i++){
+    const p=inner[i],q=inner[(i+1)%inner.length],dx=q[0]-p[0],dy=q[1]-p[1],n=Math.hypot(dx,dy);
+    if(n<EPS) continue;
+    const mx=(p[0]+q[0])/2,my=(p[1]+q[1])/2,nx=-dy/n,ny=dx/n;
+    for(const sign of [1,-1]){
+      const x=mx+sign*1e-6*nx,y=my+sign*1e-6*ny;
+      if(pointStrictlyInside(x,y,inner)){
+        if(!pointInPolygon(x,y,outer,true)) return false;
+        break;
+      }
+    }
+  }
+  return true;
+}
+function pointSegmentDistance(px,py,x1,y1,x2,y2) {
+  const dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy;
+  if(l2<=EPS) return Math.hypot(px-x1,py-y1);
+  const t=clamp(((px-x1)*dx+(py-y1)*dy)/l2,0,1);
+  return Math.hypot(px-(x1+t*dx),py-(y1+t*dy));
+}
+function segmentSegmentDistance(p1,p2,q1,q2) {
+  if(segmentsProperlyIntersect(p1,p2,q1,q2)) return 0;
+  return Math.min(pointSegmentDistance(p1[0],p1[1],q1[0],q1[1],q2[0],q2[1]),
+    pointSegmentDistance(p2[0],p2[1],q1[0],q1[1],q2[0],q2[1]),
+    pointSegmentDistance(q1[0],q1[1],p1[0],p1[1],p2[0],p2[1]),
+    pointSegmentDistance(q2[0],q2[1],p1[0],p1[1],p2[0],p2[1]));
+}
+function segmentPolygonDistance(p1,p2,poly) {
+  if(pointInPolygon(p1[0],p1[1],poly,true)||pointInPolygon(p2[0],p2[1],poly,true)) return 0;
+  let d=Infinity;
+  for(let k=0;k<poly.length;k++) d=Math.min(d,segmentSegmentDistance(p1,p2,poly[k],poly[(k+1)%poly.length]));
+  return d;
+}
+function exitSegment(ex,size) {
+  const [L,H]=size,o=ex.offset,w=ex.width;
+  if(ex.side==="S") return [o,0,o+w,0];
+  if(ex.side==="N") return [o,H,o+w,H];
+  if(ex.side==="W") return [0,o,0,o+w];
+  return [L,o,L,o+w];
+}
+function wallLen(side) { const [L,H]=scene.geometry.size; return side==="N"||side==="S"?L:H; }
+
+class MinHeap {
+  constructor(){ this.a=[]; }
+  get size(){ return this.a.length; }
+  push(v){ const a=this.a; a.push(v); let i=a.length-1;
+    while(i>0){ const p=(i-1)>>1; if(a[p][0]<=v[0]) break; a[i]=a[p]; i=p; } a[i]=v; }
+  pop(){ const a=this.a,top=a[0],last=a.pop(); if(a.length){ let i=0;
+    while(true){ let l=i*2+1,r=l+1,s=i;
+      if(l<a.length&&a[l][0]<a[s][0]) s=l;
+      if(r<a.length&&a[r][0]<a[s][0]) s=r;
+      if(s===i) break; [a[i],a[s]]=[a[s],a[i]]; i=s; }
+    a[i]=last; } return top; }
+}
+
+function rasterize() {
+  const {size:[L,H],resolution:res}=scene.geometry;
+  const Nx=Math.round(L/res),Ny=Math.round(H/res),N=Nx*Ny,at=(i,j)=>j*Nx+i;
+  const fixed=new Uint8Array(N),wall=new Uint8Array(N),facilityMask=new Uint8Array(N);
+  const facilityCells={},baseWalk=new Uint8Array(N),walk=new Uint8Array(N);
+  for(let j=0;j<Ny;j++) wall[at(0,j)]=wall[at(Nx-1,j)]=1;
+  for(let i=0;i<Nx;i++) wall[at(i,0)]=wall[at(i,Ny-1)]=1;
+  for(let j=0;j<Ny;j++) for(let i=0;i<Nx;i++){
+    const x=(i+.5)*res,y=(j+.5)*res,k=at(i,j);
+    for(const ob of scene.geometry.obstacles)
+      if(x>ob.x+EPS&&x<ob.x+ob.w-EPS&&y>ob.y+EPS&&y<ob.y+ob.h-EPS) fixed[k]=1;
+    for(const w of scene.geometry.walls||[]){
+      const [x1,y1,x2,y2]=w,dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy||1e-18;
+      const t=clamp(((x-x1)*dx+(y-y1)*dy)/l2,0,1);
+      if(Math.hypot(x-(x1+t*dx),y-(y1+t*dy))<=res/2+EPS) wall[k]=1;
+    }
+  }
+  const exitCells={},exitSegments={};
+  for(const ex of scene.exits){
+    const [x1,y1,x2,y2]=exitSegment(ex,scene.geometry.size); exitSegments[ex.id]=[x1,y1,x2,y2];
+    const cells=[];
+    if(ex.side==="N"||ex.side==="S"){
+      const j=ex.side==="N"?Ny-1:0;
+      const i0=Math.max(0,Math.ceil(x1/res-.5)),i1=Math.min(Nx-1,Math.floor(x2/res-.5));
+      for(let i=i0;i<=i1;i++){ cells.push([i,j]); wall[at(i,j)]=0; }
+    } else {
+      const i=ex.side==="E"?Nx-1:0;
+      const j0=Math.max(0,Math.ceil(y1/res-.5)),j1=Math.min(Ny-1,Math.floor(y2/res-.5));
+      for(let j=j0;j<=j1;j++){ cells.push([i,j]); wall[at(i,j)]=0; }
+    }
+    exitCells[ex.id]=cells;
+  }
+  for(let k=0;k<N;k++){ baseWalk[k]=!(fixed[k]||wall[k]); walk[k]=baseWalk[k]; }
+  for(const f of facilities()){
+    const [cx,cy]=f.center,th=f.rotation_deg*Math.PI/180,c=Math.cos(th),s=Math.sin(th);
+    let n=0;
+    for(let j=0;j<Ny;j++) for(let i=0;i<Nx;i++){
+      const dx=(i+.5)*res-cx,dy=(j+.5)*res-cy,lx=dx*c+dy*s,ly=-dx*s+dy*c;
+      if(Math.abs(lx)<=f.length/2+EPS&&Math.abs(ly)<=f.width/2+EPS){ facilityMask[at(i,j)]=1; walk[at(i,j)]=0; n++; }
+    }
+    facilityCells[f.id]=n;
+  }
+  const rho=new Float64Array(N),zid=new Int32Array(N).fill(-1),zoneMasks=[];
+  let overlap=0;
+  scene.crowd.zones.forEach((z,zi)=>{
+    const raw=new Uint8Array(N);
+    for(let j=0;j<Ny;j++) for(let i=0;i<Nx;i++){
+      const x=(i+.5)*res,y=(j+.5)*res;
+      if(pointInPolygon(x,y,z.polygon,true)) raw[at(i,j)]=1;
+    }
+    zoneMasks.push(raw);
+    let n=0; for(let k=0;k<N;k++) if(raw[k]&&walk[k]) n++;
+    const dens=z.count/Math.max(n,1)/(res*res);
+    for(let k=0;k<N;k++) if(raw[k]&&walk[k]){ rho[k]+=dens; if(zid[k]>=0) overlap++; zid[k]=zi; }
+  });
+  const target=scene.crowd.zones.reduce((s,z)=>s+z.count,0);
+  let mass=0; for(const v of rho) mass+=v; mass*=res*res;
+  if(mass>0&&Math.abs(mass-target)/target>1e-6){ const f=target/mass; for(let k=0;k<N;k++) rho[k]*=f; }
+  const crowdCovered={};
+  scene.crowd.zones.forEach((z,zi)=>{
+    let covered=0,available=0;
+    for(let k=0;k<N;k++) if(zoneMasks[zi][k]&&baseWalk[k]){ available++; if(facilityMask[k]) covered++; }
+    if(covered) crowdCovered[z.id]={cells:covered,people:z.count*covered/Math.max(available,1)};
+  });
+  const exitBlocked={};
+  for(const [id,cells] of Object.entries(exitCells)) exitBlocked[id]=cells.filter(([i,j])=>facilityMask[at(i,j)]);
+  const seeds=[]; for(const cells of Object.values(exitCells)) for(const c of cells) seeds.push(c);
+  const seen=new Uint8Array(N),q=[];
+  for(const [i,j] of seeds){ const k=at(i,j); if(walk[k]&&!seen[k]){ seen[k]=1; q.push([i,j]); } }
+  while(q.length){ const [i,j]=q.pop();
+    for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const ni=i+di,nj=j+dj; if(ni<0||nj<0||ni>=Nx||nj>=Ny) continue;
+      const k=at(ni,nj); if(walk[k]&&!seen[k]){ seen[k]=1; q.push([ni,nj]); }
+    }
+  }
+  return {Nx,Ny,res,N,at,fixed,wall,facilityMask,baseWalk,walk,rho,zid,zoneMasks,exitCells,exitSegments,
+    facilityCells,crowdCovered,exitBlocked,overlap,seen,seeds};
+}
+
+function clearanceField(R) {
+  const {Nx,Ny,res,N,at,walk}=R,dist=new Float64Array(N).fill(Infinity),heap=new MinHeap();
+  for(let k=0;k<N;k++) if(!walk[k]){ dist[k]=0; heap.push([0,k%Nx,Math.floor(k/Nx)]); }
+  const steps=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,Math.SQRT2],[1,-1,Math.SQRT2],[-1,1,Math.SQRT2],[-1,-1,Math.SQRT2]];
+  while(heap.size){ const [d,i,j]=heap.pop(); if(d>dist[at(i,j)]+EPS) continue;
+    for(const [di,dj,w] of steps){ const ni=i+di,nj=j+dj; if(ni<0||nj<0||ni>=Nx||nj>=Ny) continue;
+      const nd=d+w,k=at(ni,nj); if(nd<dist[k]-EPS){ dist[k]=nd; heap.push([nd,ni,nj]); }
+    }
+  }
+  const clearance=new Float64Array(N);
+  for(let k=0;k<N;k++) clearance[k]=walk[k]?Math.max((dist[k]-.5)*res,0):0;
+  return clearance;
+}
+function reachableOn(mask,R,seeds=R.seeds) {
+  const {Nx,Ny,N,at}=R,seen=new Uint8Array(N),q=[];
+  for(const [i,j] of seeds){ const k=at(i,j); if(mask[k]&&!seen[k]){ seen[k]=1; q.push([i,j]); } }
+  while(q.length){ const [i,j]=q.pop();
+    for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const ni=i+di,nj=j+dj; if(ni<0||nj<0||ni>=Nx||nj>=Ny) continue;
+      const k=at(ni,nj); if(mask[k]&&!seen[k]){ seen[k]=1; q.push([ni,nj]); }
+    }
+  }
+  return seen;
+}
+
+function runCheck() {
+  problems=variableParameterProblems(); badCells=[];
+  const g=scene.geometry,[L,H]=g.size,policy=layoutPolicy();
+  for(const ob of g.obstacles) if(ob.x<0||ob.y<0||ob.x+ob.w>L+EPS||ob.y+ob.h>H+EPS)
+    problems.push({level:"error",msg:`固定障碍『${ob.name}』超出场地边界`});
+  for(let a=0;a<g.obstacles.length;a++) for(let b=a+1;b<g.obstacles.length;b++){
+    const A=g.obstacles[a],B=g.obstacles[b];
+    if(A.x<B.x+B.w-EPS&&B.x<A.x+A.w-EPS&&A.y<B.y+B.h-EPS&&B.y<A.y+A.h-EPS)
+      problems.push({level:"error",msg:`固定障碍『${A.name}』与『${B.name}』重叠`});
+  }
+  for(const ex of scene.exits){
+    const wl=wallLen(ex.side);
+    if(ex.offset<WALL_MARGIN-EPS||ex.offset+ex.width>wl-WALL_MARGIN+EPS)
+      problems.push({level:"error",msg:`出口 ${ex.id}『${ex.name}』距墙角不足 ${WALL_MARGIN} 米或超出墙面`});
+  }
+  for(let a=0;a<scene.exits.length;a++) for(let b=a+1;b<scene.exits.length;b++){
+    const A=scene.exits[a],B=scene.exits[b];
+    if(A.side===B.side&&A.offset<B.offset+B.width-EPS&&B.offset<A.offset+A.width-EPS)
+      problems.push({level:"error",msg:`出口 ${A.id} 与 ${B.id} 的开口重叠`});
+  }
+  for(const z of scene.crowd.zones) for(const [x,y] of z.polygon)
+    if(x<-EPS||y<-EPS||x>L+EPS||y>H+EPS){ problems.push({level:"error",msg:`人群区 ${z.id}『${z.name}』有顶点超出场地`}); break; }
+
+  const R=rasterize(),ids=new Set(),polys=[];
+  for(const f of facilities()){
+    if(ids.has(f.id)) problems.push({level:"error",msg:`设施 id 重复：${f.id}`});
+    ids.add(f.id);
+    if(!Number.isFinite(f.center[0])||!Number.isFinite(f.center[1])||!Number.isFinite(f.rotation_deg)||f.length<=0||f.width<=0){
+      problems.push({level:"error",msg:`设施 ${f.id} 的位姿或尺寸不是有限正数`}); continue;
+    }
+    const poly=facilityPolygon(f); polys.push({f,poly});
+    if(!polygonInsideRect(poly,0,0,L,H)) problems.push({level:"error",msg:`设施 ${f.id}『${f.name}』超出场地边界`});
+    if(f.allowed_region){
+      if(!f.allowed_region.every(p=>p[0]>=-EPS&&p[0]<=L+EPS&&p[1]>=-EPS&&p[1]<=H+EPS))
+        problems.push({level:"error",msg:`设施 ${f.id} 的允许区域有顶点超出场地`});
+      if(!polygonInsidePolygon(poly,f.allowed_region)) problems.push({level:"error",msg:`设施 ${f.id}『${f.name}』超出允许移动区域`});
+    }
+    if(f.resizable&&f.size_limits) for(const key of ["length","width"]){
+      const lim=f.size_limits[key]; if(lim&&(f[key]<lim[0]-EPS||f[key]>lim[1]+EPS))
+        problems.push({level:"error",msg:`设施 ${f.id} 的 ${key}=${f[key]} 超出可改尺寸范围 ${lim}`});
+    }
+    for(const ob of g.obstacles) if(convexOverlap(poly,rectPolygon(ob.x,ob.y,ob.w,ob.h)))
+      problems.push({level:"error",msg:`设施 ${f.id}『${f.name}』与固定障碍『${ob.name}』重叠`});
+    for(const w of g.walls||[]) if(segmentPolygonInterior(w.slice(0,2),w.slice(2),poly))
+      problems.push({level:"error",msg:`设施 ${f.id}『${f.name}』穿过内部隔墙`});
+    for(const ex of scene.exits){
+      const seg=exitSegment(ex,g.size),d=segmentPolygonDistance(seg.slice(0,2),seg.slice(2),poly);
+      if(d<policy.exit_clearance-EPS) problems.push({level:"error",msg:`设施 ${f.id} 距出口 ${ex.id} 仅 ${d.toFixed(2)} 米，小于 ${policy.exit_clearance} 米`});
+    }
+    if(!R.facilityCells[f.id]) problems.push({level:"warning",msg:`设施 ${f.id} 在 ${R.res} 米栅格上不可见`});
+  }
+  for(let a=0;a<polys.length;a++) for(let b=a+1;b<polys.length;b++) if(convexOverlap(polys[a].poly,polys[b].poly))
+    problems.push({level:"error",msg:`设施 ${polys[a].f.id} 与 ${polys[b].f.id} 重叠`});
+  for(const [id,cells] of Object.entries(R.exitBlocked)) if(cells.length)
+    problems.push({level:"error",msg:`设施覆盖了出口 ${id} 的开口`});
+  for(const [id,info] of Object.entries(R.crowdCovered))
+    problems.push({level:"error",msg:`设施压到初始人群区 ${id}：${info.cells} 个格子，约 ${info.people.toFixed(0)} 人；第一版不允许覆盖初始人群`});
+
+  if(R.overlap) problems.push({level:"warning",msg:`${R.overlap} 个格子被多个人群区覆盖，密度已按总人数归一化`});
+  if(!R.seeds.length) problems.push({level:"error",msg:"没有任何出口成功开口，人员无法离开"});
+  const jam=scene.params.jam_density||JAM_DEFAULT;
+  scene.crowd.zones.forEach((z,zi)=>{
+    let n=0,bad=0,rhoMax=0;
+    for(let k=0;k<R.N;k++) if(R.zid[k]===zi){
+      n++; rhoMax=Math.max(rhoMax,R.rho[k]);
+      if(!R.seen[k]){ bad++; if(badCells.length<200){ const i=k%R.Nx,j=Math.floor(k/R.Nx); badCells.push([(i+.5)*R.res,(j+.5)*R.res]); } }
+    }
+    if(!n) problems.push({level:"error",msg:`人群区 ${z.id}『${z.name}』完全被障碍或墙覆盖`});
+    else {
+      if(bad) problems.push({level:"error",msg:`人群区 ${z.id}『${z.name}』有 ${bad} 个格子无法到达出口`});
+      if(rhoMax>jam) problems.push({level:"warning",msg:`人群区 ${z.id} 密度 ${rhoMax.toFixed(2)} 人/m² 超过拥堵阈值 ${jam}`});
+    }
+  });
+  if(policy.min_passage_width>0&&facilities().length){
+    const clearance=clearanceField(R),wide=new Uint8Array(R.N);
+    for(let k=0;k<R.N;k++) wide[k]=R.walk[k]&&clearance[k]>=policy.min_passage_width/2-EPS?1:0;
+    for(const cells of Object.values(R.exitCells)) for(const [i,j] of cells) wide[R.at(i,j)]=R.walk[R.at(i,j)];
+    const seenWide=reachableOn(wide,R);
+    scene.crowd.zones.forEach((z,zi)=>{
+      const m=R.zoneMasks[zi]; let any=false,has=false;
+      for(let k=0;k<R.N;k++) if(m[k]&&R.baseWalk[k]){ has=true; if(seenWide[k]) any=true; }
+      if(has&&!any) problems.push({level:"error",msg:`人群区 ${z.id}『${z.name}』到出口的通路宽度不足 ${policy.min_passage_width} 米`});
+    });
+  }
+  for(const ex of scene.exits) if(!R.exitCells[ex.id].length)
+    problems.push({level:"error",msg:`出口 ${ex.id} 宽度不足一个栅格`});
+  const target=scene.crowd.zones.reduce((s,z)=>s+z.count,0); let mass=0; for(const v of R.rho) mass+=v; mass*=R.res*R.res;
+  if(target>0&&Math.abs(mass-target)>Math.max(1e-6*target,1e-9))
+    problems.push({level:"warning",msg:`密度场总人数 ${mass.toFixed(1)} 与配置人数 ${target} 不一致`});
+  renderProblems(); renderSummary();
+  return problems;
+}
+
+function nextId(prefix,list) { let m=0; for(const it of list){ const n=parseInt(String(it.id||"").slice(prefix.length)); if(!isNaN(n)) m=Math.max(m,n); } return prefix+(m+1); }
+
+const cv=$("cv"),ctx=cv.getContext("2d");
+const view={scale:10,ox:0,oy:0};
+function W2C(x,y){ return [view.ox+x*view.scale,view.oy-y*view.scale]; }
+function fitView() {
+  const wrap=$("canvasWrap"),[L,H]=scene.geometry.size,m=64;
+  view.scale=Math.max(.1,Math.min((wrap.clientWidth-2*m)/L,(wrap.clientHeight-2*m)/H));
+  view.ox=(wrap.clientWidth-L*view.scale)/2;
+  view.oy=(wrap.clientHeight+H*view.scale)/2;
+  draw();
+}
+function resizeCanvas() {
+  const wrap=$("canvasWrap"),dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(wrap.clientWidth*dpr); cv.height=Math.round(wrap.clientHeight*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0); fitView();
+}
+function zoomAt(factor,px=cv.clientWidth/2,py=cv.clientHeight/2) {
+  const wx=(px-view.ox)/view.scale,wy=(view.oy-py)/view.scale,old=view.scale;
+  view.scale=clamp(old*factor,old*.25,old*8); view.ox=px-wx*view.scale; view.oy=py+wy*view.scale; draw();
+}
+function pathPoly(poly) {
+  ctx.beginPath(); poly.forEach((p,k)=>{ const [x,y]=W2C(p[0],p[1]); k?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.closePath();
+}
+function roundRect(x,y,w,h,r) {
+  ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(x,y,w,h,r); else ctx.rect(x,y,w,h);
+}
+function label(text,x,y,opt={}) {
+  ctx.font=opt.font||"600 11px system-ui"; ctx.textAlign="center";
+  const tm=ctx.measureText(text),asc=tm.actualBoundingBoxAscent||8,desc=tm.actualBoundingBoxDescent||3;
+  const bw=tm.width+14,bh=asc+desc+8,rx=x-bw/2,ry=y-asc-4;
+  ctx.fillStyle=opt.bg||"rgba(8,14,42,.82)"; roundRect(rx,ry,bw,bh,5); ctx.fill();
+  if(opt.border){ ctx.strokeStyle=opt.border; ctx.lineWidth=1; ctx.stroke(); }
+  ctx.fillStyle=opt.color||"#f1efff"; ctx.fillText(text,x,y);
+}
+
+function draw() {
+  const w=cv.clientWidth,h=cv.clientHeight,[L,H]=scene.geometry.size;
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle="rgba(170,182,253,.05)"; ctx.lineWidth=1;
+  for(let x=0;x<w;x+=32){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke(); }
+  for(let y=0;y<h;y+=32){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke(); }
+  const [x0,y0]=W2C(0,0),[x1,y1]=W2C(L,H),mw=L*view.scale,mh=H*view.scale;
+  ctx.save(); ctx.shadowColor="rgba(0,0,0,.55)";ctx.shadowBlur=34;ctx.shadowOffsetY=12;
+  ctx.fillStyle="#f5f0f8";ctx.fillRect(x0,y1,mw,mh);ctx.restore();
+  ctx.save(); ctx.beginPath();ctx.rect(x0,y1,mw,mh);ctx.clip();
+  ctx.fillStyle="rgba(91,76,132,.09)";
+  for(let y=1;y<H;y+=1.5) for(let x=1;x<L;x+=1.5){ const [px,py]=W2C(x,y);ctx.fillRect(px,py,1,1); }
+  if(showGrid){
+    ctx.strokeStyle="rgba(69,57,113,.1)";ctx.lineWidth=1;
+    for(let x=0;x<=L;x+=2){ const [a,b]=W2C(x,0),[c,d]=W2C(x,H);ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke(); }
+    for(let y=0;y<=H;y+=2){ const [a,b]=W2C(0,y),[c,d]=W2C(L,y);ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke(); }
+  }
+  if(showRegions) for(const f of facilities()) if(f.allowed_region){
+    pathPoly(f.allowed_region);ctx.fillStyle="rgba(251,122,143,.09)";ctx.fill();
+    ctx.strokeStyle="rgba(169,63,93,.6)";ctx.lineWidth=1.2;ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
+  }
+  if(showZones) scene.crowd.zones.forEach((z,zi)=>{
+    const selected=sel&&sel.type==="zone"&&sel.id===z.id;
+    const seated=z.profile==="seated";
+    const color=seated?["#aab6fd","#8fa5fb","#b9c3ff","#9badf9"][zi%4]:["#fcb4c5","#fb7a8f","#f7a3b8","#f58ea2"][zi%4];
+    pathPoly(z.polygon);ctx.fillStyle=seated?"rgba(170,182,253,.28)":"rgba(251,122,143,.2)";ctx.fill();
+    ctx.save();pathPoly(z.polygon);ctx.clip();
+    if(seated){
+      ctx.fillStyle="rgba(63,73,145,.22)";
+      for(let y=1;y<H;y+=1.35) for(let x=1;x<L;x+=1.55){ const [px,py]=W2C(x,y);roundRect(px-2.2,py-1.5,4.4,3,1);ctx.fill(); }
+    } else {
+      ctx.fillStyle="rgba(160,62,91,.16)";
+      for(let y=1;y<H;y+=2) for(let x=1;x<L;x+=2){ const [px,py]=W2C(x,y);ctx.beginPath();ctx.arc(px,py,1.15,0,Math.PI*2);ctx.fill(); }
+    }
+    ctx.restore();
+    pathPoly(z.polygon);ctx.strokeStyle=selected?"#6096fc":color;ctx.lineWidth=selected?2.6:1.15;ctx.stroke();
+    if(selected){ctx.setLineDash([6,4]);ctx.strokeStyle="#112b8c";ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);}
+    const c=centroid(z.polygon),[lx,ly]=W2C(c[0],c[1]),text=`${z.name} · ${z.count}人`;
+    ctx.font="600 11px system-ui";const tw=ctx.measureText(text).width;
+    label(text,clamp(lx,x0+tw/2+8,x1-tw/2-8),clamp(ly,y1+14,y0-10),{color:seated?"#2c347c":"#7c2e49",bg:"rgba(249,245,252,.9)",border:selected?"#6096fc":"rgba(91,76,132,.2)"});
+  });
+  for(const wseg of scene.geometry.walls||[]){
+    const [a,b]=W2C(wseg[0],wseg[1]),[c,d]=W2C(wseg[2],wseg[3]);
+    ctx.strokeStyle="rgba(63,50,91,.2)";ctx.lineWidth=7;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(c,d);ctx.stroke();
+    ctx.strokeStyle="#6f6a96";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(c,d);ctx.stroke();
+  }
+  for(const ob of scene.geometry.obstacles){
+    const selected=sel&&sel.type==="obstacle"&&sel.id===ob.name,[ax,ay]=W2C(ob.x,ob.y+ob.h),ww=ob.w*view.scale,hh=ob.h*view.scale;
+    ctx.fillStyle="rgba(63,50,91,.16)";roundRect(ax+3,ay+4,ww,hh,3);ctx.fill();
+    ctx.fillStyle="#d9d4e8";roundRect(ax,ay,ww,hh,3);ctx.fill();
+    ctx.strokeStyle=selected?"#fb7a8f":"#8b84a8";ctx.lineWidth=selected?2.4:1;ctx.stroke();
+    ctx.fillStyle="rgba(255,255,255,.3)";ctx.fillRect(ax+4,ay+4,Math.max(0,ww-8),3);
+    if(ww>45&&hh>24) label(`${ob.name} · ${ob.w}×${ob.h}m`,ax+ww/2,ay+hh/2+3,{color:"#4a4268",bg:"rgba(244,239,248,.86)",border:selected?"rgba(251,122,143,.6)":"rgba(91,76,132,.18)"});
+  }
+  if(showFacilities) for(const f of facilities()){
+    const selected=sel&&sel.type==="facility"&&sel.id===f.id,[cx,cy]=W2C(f.center[0],f.center[1]);
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(-f.rotation_deg*Math.PI/180);
+    ctx.shadowColor="rgba(124,46,73,.22)";ctx.shadowBlur=8;ctx.shadowOffsetY=3;
+    ctx.fillStyle=selected?"#fcb4c5":"#fb7a8f";roundRect(-f.length*view.scale/2,-f.width*view.scale/2,f.length*view.scale,f.width*view.scale,3);ctx.fill();
+    ctx.shadowColor="transparent";ctx.strokeStyle=selected?"#fff0f4":"#a93f5d";ctx.lineWidth=selected?2.2:1.2;ctx.stroke();
+    ctx.strokeStyle="rgba(255,255,255,.66)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-f.length*view.scale/2+5,0);ctx.lineTo(f.length*view.scale/2-5,0);ctx.stroke();
+    ctx.restore();
+    if(f.length*view.scale>34) label(`${f.id} · ${f.name}`,cx,cy+3,{font:"600 11px system-ui",color:"#6b203a",bg:"rgba(255,228,236,.9)",border:selected?"rgba(255,240,244,.95)":"rgba(169,63,93,.24)"});
+    if(selected){
+      const p=facilityPolygon(f);pathPoly(p);ctx.strokeStyle="#fff0f4";ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+      const [ex,ey]=W2C(f.center[0]+f.length/2*Math.cos(f.rotation_deg*Math.PI/180),f.center[1]+f.length/2*Math.sin(f.rotation_deg*Math.PI/180));
+      ctx.fillStyle="#fff0f4";ctx.beginPath();ctx.arc(ex,ey,3,0,Math.PI*2);ctx.fill();
+    }
+  }
+  ctx.fillStyle="rgba(251,122,143,.72)";
+  for(const [bx,by] of badCells){ const [cx,cy]=W2C(bx,by);ctx.fillRect(cx-view.scale/2+1,cy-view.scale/2+1,Math.max(1,view.scale-2),Math.max(1,view.scale-2)); }
+  ctx.restore();
+  ctx.strokeStyle="#2b2c55";ctx.lineWidth=4;ctx.lineCap="butt";
+  for(const side of ["S","N","E","W"]){
+    const gaps=scene.exits.filter(e=>e.side===side).map(e=>[e.offset,e.offset+e.width]).sort((a,b)=>a[0]-b[0]);
+    let cur=0;for(const [g0,g1] of gaps){drawWall(side,cur,g0);cur=g1;}drawWall(side,cur,wallLen(side));
+  }
+  for(const ex of scene.exits){
+    const [x1,y1,x2,y2]=exitSegment(ex,scene.geometry.size),[a,b]=W2C(x1,y1),[c,d]=W2C(x2,y2);
+    const selected=sel&&sel.type==="exit"&&sel.id===ex.id;
+    ctx.strokeStyle=selected?"#fcb4c5":"#6096fc";ctx.lineWidth=selected?8:6;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(c,d);ctx.stroke();
+    const mx=(x1+x2)/2,my=(y1+y2)/2,dist=2.2,dir={S:[0,-dist],N:[0,dist],W:[-dist,0],E:[dist,0]}[ex.side];
+    const [tx,ty]=W2C(mx+dir[0],my+dir[1]),[mhx,mhy]=W2C(mx,my);
+    ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(mhx,mhy);ctx.lineTo(tx,ty);ctx.stroke();
+    let lx=tx+(ex.side==="E"?12:ex.side==="W"?-12:0),ly=ty+(ex.side==="S"?15:ex.side==="N"?-7:4);
+    lx=clamp(lx,70,w-70);ly=clamp(ly,70,h-18);
+    label(`${ex.id} · ${ex.name} ${ex.width}m`,lx,ly,{font:"600 11px system-ui",color:selected?"#fff0f4":"#dce7ff",bg:"rgba(8,14,42,.88)",border:selected?"rgba(252,180,197,.62)":"rgba(96,150,252,.44)"});
+  }
+  if(dragStart&&dragNow){
+    const x=Math.min(dragStart[0],dragNow[0]),y=Math.min(dragStart[1],dragNow[1]);
+    const ww=Math.abs(dragStart[0]-dragNow[0]),hh=Math.abs(dragStart[1]-dragNow[1]),[ax,ay]=W2C(x,y+hh);
+    ctx.fillStyle=mode==="addFacility"?"rgba(251,122,143,.18)":"rgba(170,182,253,.2)";ctx.fillRect(ax,ay,ww*view.scale,hh*view.scale);
+    ctx.strokeStyle=mode==="addFacility"?"#fb7a8f":"#aab6fd";ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.strokeRect(ax,ay,ww*view.scale,hh*view.scale);ctx.setLineDash([]);
+    label(`${ww.toFixed(1)} × ${hh.toFixed(1)}m`,ax+ww*view.scale/2,ay-8,{color:"#f1efff",bg:"rgba(8,14,42,.88)"});
+  }
+}
+function drawWall(side,from,to) {
+  if(to-from<=EPS) return; const [L,H]=scene.geometry.size; let a,b;
+  if(side==="S"){a=W2C(from,0);b=W2C(to,0);} else if(side==="N"){a=W2C(from,H);b=W2C(to,H);}
+  else if(side==="W"){a=W2C(0,from);b=W2C(0,to);} else {a=W2C(L,from);b=W2C(L,to);}
+  ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+}
+
+function pick(wx,wy) {
+  for(let k=facilities().length-1;k>=0;k--){ const f=facilities()[k],th=-f.rotation_deg*Math.PI/180,c=Math.cos(th),s=Math.sin(th),dx=wx-f.center[0],dy=wy-f.center[1];
+    const lx=dx*c-dy*s,ly=dx*s+dy*c; if(Math.abs(lx)<=f.length/2&&Math.abs(ly)<=f.width/2) return {type:"facility",id:f.id}; }
+  for(const ex of scene.exits){ const [x1,y1,x2,y2]=exitSegment(ex,scene.geometry.size),vx=x2-x1,vy=y2-y1,l2=vx*vx+vy*vy||1;
+    const t=clamp(((wx-x1)*vx+(wy-y1)*vy)/l2,0,1); if(Math.hypot(wx-(x1+t*vx),wy-(y1+t*vy))<.85) return {type:"exit",id:ex.id}; }
+  for(let k=scene.geometry.obstacles.length-1;k>=0;k--){ const o=scene.geometry.obstacles[k];
+    if(wx>=o.x&&wx<=o.x+o.w&&wy>=o.y&&wy<=o.y+o.h) return {type:"obstacle",id:o.name}; }
+  for(let k=scene.crowd.zones.length-1;k>=0;k--) if(pointInPolygon(wx,wy,scene.crowd.zones[k].polygon,true)) return {type:"zone",id:scene.crowd.zones[k].id};
+  return null;
+}
+function mousePos(e) { const r=cv.getBoundingClientRect();return [(e.clientX-r.left-view.ox)/view.scale,(view.oy-(e.clientY-r.top))/view.scale]; }
+cv.addEventListener("mousedown",e=>{ if(mode!=="select"){ const p=mousePos(e);dragStart=p;dragNow=p;draw(); } });
+cv.addEventListener("mousemove",e=>{
+  const [x,y]=mousePos(e);$("coordReadout").textContent=`x ${x.toFixed(2)} · y ${y.toFixed(2)} m`;
+  if(dragStart){dragNow=[x,y];draw();}
+});
+cv.addEventListener("mouseup",e=>{
+  if(mode==="select"){ const [wx,wy]=mousePos(e);sel=pick(wx,wy);refreshAll();return; }
+  if(!dragStart) return;
+  const [wx,wy]=mousePos(e),x0=Math.min(dragStart[0],wx),x1=Math.max(dragStart[0],wx),y0=Math.min(dragStart[1],wy),y1=Math.max(dragStart[1],wy);
+  dragStart=dragNow=null; const [L,H]=scene.geometry.size;
+  const ax=clamp(x0,0,L),bx=clamp(x1,0,L),ay=clamp(y0,0,H),by=clamp(y1,0,H),ww=bx-ax,hh=by-ay;
+  if(mode==="addZone"){
+    if(ww<1||hh<1) flash("区域太小，至少需要 1m × 1m");
+    else { const id=nextId("Z",scene.crowd.zones),z={id,name:`人群区${id.slice(1)}`,polygon:[[ax,ay],[bx,ay],[bx,by],[ax,by]],count:Math.max(1,Math.round(ww*hh*2)),profile:"standing"};
+      scene.crowd.zones.push(z);sel={type:"zone",id}; }
+  } else if(mode==="addObstacle"){
+    if(ww<.5||hh<.5) flash("障碍太小，至少需要 0.5m × 0.5m");
+    else { let n=scene.geometry.obstacles.length+1;const ob={name:`固定障碍${n}`,x:+ax.toFixed(2),y:+ay.toFixed(2),w:+ww.toFixed(2),h:+hh.toFixed(2)};
+      scene.geometry.obstacles.push(ob);sel={type:"obstacle",id:ob.name}; }
+  } else if(mode==="addFacility"){
+    let fw=ww,fh=hh,cx=(ax+bx)/2,cy=(ay+by)/2;
+    if(fw<.5||fh<.5){fw=4;fh=2;cx=clamp(cx,2,L-2);cy=clamp(cy,1,H-1);}
+    const id=nextId("F",facilities()),rx0=clamp(cx-fw/2-2,0,L),rx1=clamp(cx+fw/2+2,0,L),ry0=clamp(cy-fh/2-2,0,H),ry1=clamp(cy+fh/2+2,0,H);
+    const f={id,name:`临时展台 ${id.slice(1)}`,kind:"exhibit",effect:"block",center:[+cx.toFixed(2),+cy.toFixed(2)],length:+fw.toFixed(2),width:+fh.toFixed(2),rotation_deg:0,movable:true,resizable:false,
+      allowed_region:[[rx0,ry0],[rx1,ry0],[rx1,ry1],[rx0,ry1]]};
+    scene.geometry.facilities.push(f);sel={type:"facility",id};
+  } else sel=pick(wx,wy);
+  setMode("select");invalidate();
+});
+cv.addEventListener("dblclick",e=>{ const hit=pick(...mousePos(e));if(hit){sel=hit;setMode("select");refreshAll();} });
+cv.addEventListener("wheel",e=>{e.preventDefault();const r=cv.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.001),e.clientX-r.left,e.clientY-r.top);},{passive:false});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){setMode("select");sel=null;refreshAll();}
+  if((e.key==="Delete"||e.key==="Backspace")&&sel&&!["INPUT","SELECT","TEXTAREA"].includes(document.activeElement.tagName)){e.preventDefault();deleteSel();}
+});
+function deleteSel(){
+  if(!sel) return;
+  if(sel.type==="zone") scene.crowd.zones=scene.crowd.zones.filter(z=>z.id!==sel.id);
+  if(sel.type==="obstacle") scene.geometry.obstacles=scene.geometry.obstacles.filter(o=>o.name!==sel.id);
+  if(sel.type==="facility") scene.geometry.facilities=facilities().filter(f=>f.id!==sel.id);
+  if(sel.type==="exit") scene.exits=scene.exits.filter(x=>x.id!==sel.id);
+  sel=null;invalidate();
+}
+function flash(msg){ (problems||(problems=[])).push({level:"warning",msg});renderProblems();renderSummary(); }
+function notify(msg,type="info"){ const el=$("actionNotice");el.textContent=msg;el.className=`action-notice ${type}`; }
+const VARIABLE_PARAMETER_SPECS={
+  exit_width:{target:"exit",field:"width",unit:"m"},
+  facility_center_x:{target:"facility",field:"center_x",unit:"m"},
+  facility_center_y:{target:"facility",field:"center_y",unit:"m"},
+  facility_rotation:{target:"facility",field:"rotation_deg",unit:"deg"},
+  facility_length:{target:"facility",field:"length",unit:"m"},
+  facility_width:{target:"facility",field:"width",unit:"m"}
+};
+function variableParameterTarget(d){
+  const spec=VARIABLE_PARAMETER_SPECS[d.type];if(!spec)return null;
+  return (spec.target==="exit"?scene.exits:facilities()).find(item=>item.id===d.target_id)||null;
+}
+function refreshVariableParameters(){
+  if(!Array.isArray(scene.variable_parameters))return;
+  for(const d of scene.variable_parameters){
+    if(!d||typeof d!=="object")continue;
+    const spec=VARIABLE_PARAMETER_SPECS[d.type],target=variableParameterTarget(d);if(!spec||!target)continue;
+    let value;
+    if(spec.field==="center_x")value=target.center[0];
+    else if(spec.field==="center_y")value=target.center[1];
+    else if(spec.field==="rotation_deg")value=((target.rotation_deg%360)+360)%360;
+    else value=target[spec.field];
+    if(!Number.isFinite(value))continue;
+    d.current_value=value;
+    if(Array.isArray(d.scene_diff)){
+      if(d.type==="exit_width")d.scene_diff=[{exit_id:target.id,width:target.width}];
+      else if(spec.field==="center_x"||spec.field==="center_y")d.scene_diff=[{facility_id:target.id,center:[...target.center]}];
+      else d.scene_diff=[{facility_id:target.id,[spec.field]:target[spec.field]}];
+    }
+  }
+}
+function variableParameterProblems(){
+  refreshVariableParameters();
+  if(scene.variable_parameters===undefined)return [];
+  if(!Array.isArray(scene.variable_parameters))return ["variable_parameters 必须是数组"];
+  const problems=[],names=new Set(),bindings=new Set();
+  const required=["name","type","target_id","unit","allowed_range","current_value"];
+  scene.variable_parameters.forEach((d,i)=>{
+    const label=`可变参数『${d&&d.name||`#${i}`}』`;
+    if(!d||typeof d!=="object"||Array.isArray(d)){problems.push(`${label} 必须是对象`);return;}
+    if(required.some(k=>!(k in d))){problems.push(`${label} 缺少必填字段`);return;}
+    if(typeof d.name!=="string"||!d.name.trim())problems.push(`${label} 的 name 必须是非空字符串`);
+    else if(names.has(d.name))problems.push(`${label} 的 name 重复`);else names.add(d.name);
+    const hasDescription="scene_description"in d,hasDiff="scene_diff"in d;
+    if(hasDescription===hasDiff)problems.push(`${label} 必须且只能提供 scene_description 或 scene_diff`);
+    if(hasDescription&&(typeof d.scene_description!=="string"||!d.scene_description.trim()))problems.push(`${label} 的 scene_description 必须是非空字符串`);
+    if(hasDiff&&(!Array.isArray(d.scene_diff)||d.scene_diff.length!==1))problems.push(`${label} 的 scene_diff 必须恰好包含一个修改对象`);
+    const spec=VARIABLE_PARAMETER_SPECS[d.type];
+    if(!spec){problems.push(`${label} 的 type 不支持: ${d.type}`);return;}
+    if(d.unit!==spec.unit)problems.push(`${label} 的 unit 应为 ${spec.unit}`);
+    const binding=`${d.type}:${d.target_id}`;
+    if(bindings.has(binding))problems.push(`${label} 与同一对象同一参数的声明重复`);bindings.add(binding);
+    const target=variableParameterTarget(d);
+    if(!target){problems.push(`${label} 引用了未知对象: ${d.target_id}`);return;}
+    const limits=d.allowed_range;
+    if(!Array.isArray(limits)||limits.length!==2||!limits.every(Number.isFinite)||limits[0]>limits[1]){
+      problems.push(`${label} 的 allowed_range 必须是 [min, max] 且 min<=max`);return;
+    }
+    if(["exit_width","facility_length","facility_width"].includes(d.type)&&limits[0]<=0)problems.push(`${label} 的 allowed_range 最小值必须为正数`);
+    if(d.type==="facility_rotation"&&(limits[0]<0||limits[1]>360))problems.push(`${label} 的 allowed_range 应在 [0, 360] 度内`);
+    if(!Number.isFinite(d.current_value))problems.push(`${label} 的 current_value 必须是有限数`);
+    else if(d.current_value<limits[0]-EPS||d.current_value>limits[1]+EPS)problems.push(`${label} 的 current_value 超出 allowed_range`);
+    if(spec.target==="facility"){
+      if(["facility_center_x","facility_center_y","facility_rotation"].includes(d.type)&&!target.movable)problems.push(`${label} 引用的设施不允许移动/旋转`);
+      if(["facility_length","facility_width"].includes(d.type)&&!target.resizable)problems.push(`${label} 引用的设施不允许改尺寸`);
+    }
+  });
+  return problems;
+}
+function invalidate(){ dirty=true;refreshVariableParameters();problems=null;badCells=[];$("actionNotice").textContent="";refreshAll(); }
+
+function refreshAll(){ draw();renderGeo();renderExits();renderFacilities();renderZones();renderSel();renderSummary();$("mapName").textContent=scene.meta.name;$("mapSub").textContent=`${scene.geometry.size[0]}m × ${scene.geometry.size[1]}m · revision ${scene.meta.revision||1}`; }
+function renderSummary(){
+  const R=rasterize(),total=scene.crowd.zones.reduce((s,z)=>s+z.count,0);let status;
+  if(problems===null) status='<span class="pill idle"><span class="dot"></span>未校验</span>';
+  else if(!problems.length) status='<span class="pill ok"><span class="dot"></span>校验通过</span>';
+  else { const ne=problems.filter(p=>p.level==="error").length,nw=problems.filter(p=>p.level==="warning").length;
+    status=`<span class="pill ${ne?"error":"warn"}"><span class="dot"></span>${[ne?`${ne} 个错误`:"",nw?`${nw} 个警告`:""].filter(Boolean).join(" · ")}</span>`; }
+  $("summary").innerHTML=`<span><i>总人数</i><b>${total}</b></span><span class="sep"></span><span><i>网格</i><b>${R.Ny}×${R.Nx}</b><i>@ ${R.res}m</i></span><span class="sep"></span><span><i>设施</i><b>${facilities().length}</b></span><span class="sep"></span>${status}`;
+}
+const num=(id,v,step="1")=>`<input type="number" id="${id}" value="${v}" step="${step}" class="wide">`;
+const param=(label,control)=>`<div class="param-row"><span class="param-label">${label}</span><div class="param-control">${control}</div></div>`;
+const actions=(...buttons)=>`<div class="actions">${buttons.join("")}</div>`;
+function bindNum(id,fn){ const el=$(id);if(el) el.addEventListener("change",e=>{const v=parseFloat(e.target.value);if(Number.isFinite(v)) fn(v);}); }
+function clampExits(){ for(const ex of scene.exits) ex.offset=clamp(ex.offset,0,Math.max(0,wallLen(ex.side)-ex.width-.05)); }
+function renderGeo(){
+  const g=scene.geometry,p=layoutPolicy();
+  $("geoBox").innerHTML=`<div class="param-form">
+    ${param("场地长度（m）",num("geoL",g.size[0]))}
+    ${param("场地宽度（m）",num("geoH",g.size[1]))}
+    ${param("栅格分辨率（m）",num("geoRes",g.resolution,"0.1"))}
+    ${param("最小通路（m）",num("passW",p.min_passage_width,"0.1"))}
+    ${param("出口净空（m）",num("exitClear",p.exit_clearance,"0.1"))}
+    ${param("步行速度（m/s）",num("walkSpeed",scene.params.walk_speed,"0.1"))}
+    ${param("仿真时长（s）",num("simT",scene.params.T,"10"))}
+    ${param("拥堵阈值（人/m²）",num("jam",scene.params.jam_density,"0.1"))}
+  </div>`;
+  bindNum("geoL",v=>{g.size[0]=Math.max(5,v);clampExits();invalidate();});
+  bindNum("geoH",v=>{g.size[1]=Math.max(5,v);clampExits();invalidate();});
+  bindNum("geoRes",v=>{g.resolution=clamp(v,.1,2);invalidate();});
+  bindNum("passW",v=>{g.layout_policy=g.layout_policy||{};g.layout_policy.min_passage_width=Math.max(0,v);invalidate();});
+  bindNum("exitClear",v=>{g.layout_policy=g.layout_policy||{};g.layout_policy.exit_clearance=Math.max(0,v);invalidate();});
+  bindNum("walkSpeed",v=>{scene.params.walk_speed=Math.max(.1,v);invalidate();});
+  bindNum("simT",v=>{scene.params.T=Math.max(1,v);invalidate();});
+  bindNum("jam",v=>{scene.params.jam_density=Math.max(.1,v);invalidate();});
+}
+function renderExits(){
+  $("exitBox").innerHTML=scene.exits.map((ex,i)=>`<div class="item ${sel&&sel.type==="exit"&&sel.id===ex.id?"sel":""}" data-i="${i}">
+    <div class="exit-head"><b class="nm">${esc(ex.id)}</b><input value="${esc(ex.name)}" data-f="name" data-i="${i}" aria-label="${esc(ex.id)} 出口名称"><button class="iconbtn" data-del="${i}" title="删除出口 ${esc(ex.id)}">${I.x}</button></div>
+    <div class="exit-props">
+      ${param("墙位",`<select data-f="side" data-i="${i}">${["S","N","E","W"].map(s=>`<option ${ex.side===s?"selected":""}>${s}</option>`).join("")}</select>`)}
+      ${param("偏移（m）",`<input type="number" value="${ex.offset}" data-f="offset" data-i="${i}">`)}
+      ${param("宽度（m）",`<input type="number" step="0.1" value="${ex.width}" data-f="width" data-i="${i}">`)}
+    </div></div>`).join("")+
+    actions(`<button id="addExit">${I.plus}<span>添加出口</span></button>`);
+  $("exitBox").querySelectorAll(".item").forEach(el=>el.addEventListener("click",ev=>{if(ev.target.closest("[data-del],[data-f]"))return;sel={type:"exit",id:scene.exits[el.dataset.i].id};refreshAll();}));
+  $("exitBox").querySelectorAll("[data-f]").forEach(el=>el.addEventListener("change",()=>{
+    const i=+el.dataset.i,f=el.dataset.f,ex=scene.exits[i];
+    if(f==="name") ex.name=el.value; else if(f==="side"){ex.side=el.value;clampExits();}
+    else {const v=parseFloat(el.value);if(Number.isFinite(v)&&v>0)ex[f]=v;clampExits();} invalidate();
+  }));
+  $("exitBox").querySelectorAll("[data-del]").forEach(el=>el.addEventListener("click",()=>{scene.exits.splice(+el.dataset.del,1);if(sel&&sel.type==="exit")sel=null;invalidate();}));
+  $("addExit").addEventListener("click",()=>{const ex={id:nextId("E",scene.exits),name:`出口${scene.exits.length+1}`,side:"S",offset:wallLen("S")/2-1.25,width:2.5};scene.exits.push(ex);sel={type:"exit",id:ex.id};invalidate();});
+}
+function renderFacilities(){
+  $("facilityBox").innerHTML=facilities().map((f,i)=>`<div class="item fac ${sel&&sel.type==="facility"&&sel.id===f.id?"sel":""}" data-i="${i}">
+    <span class="facility-badge">${esc(f.id)}</span> <span class="nm">${esc(f.name)}</span>
+    <div class="sub">${f.length}×${f.width}m · ${f.rotation_deg}° · ${f.movable?"可移动":"固定"}${f.resizable?" · 可改尺寸":""}</div></div>`).join("")||'<div class="hint">暂无可移动设施。用「创建展台」模式在图上拖拽添加。</div>';
+  $("facilityBox").querySelectorAll(".item").forEach(el=>el.addEventListener("click",()=>{sel={type:"facility",id:facilities()[el.dataset.i].id};setMode("select");refreshAll();}));
+}
+function renderZones(){
+  $("zoneBox").innerHTML=scene.crowd.zones.map((z,i)=>{const d=z.count/polyArea(z.polygon),jam=scene.params.jam_density||JAM_DEFAULT;
+    return `<div class="item ${sel&&sel.type==="zone"&&sel.id===z.id?"sel":""}" data-i="${i}"><span class="swatch" style="background:${z.profile==="seated"?"#aab6fd":"#fb7a8f"}"></span><span class="nm">${esc(z.id)} ${esc(z.name)}</span><span class="sub">　${z.count}人 · ${d.toFixed(2)}人/m²</span>${d>jam?'<em class="tag">超限</em>':""}</div>`;}).join("")||'<div class="hint">暂无人群区</div>';
+  $("zoneBox").querySelectorAll(".item").forEach(el=>el.addEventListener("click",()=>{sel={type:"zone",id:scene.crowd.zones[el.dataset.i].id};setMode("select");refreshAll();}));
+}
+function renderSel(){
+  const box=$("selBox");
+  if(!sel){box.innerHTML='<div class="hint">单击地图中的人群区、出口、固定障碍或展台进行编辑。用工具栏模式拖拽添加；滚轮缩放，<kbd>Delete</kbd> 删除。</div>';return;}
+  if(sel.type==="zone"){
+    const z=scene.crowd.zones.find(z=>z.id===sel.id);if(!z){sel=null;return renderSel();}
+    const area=polyArea(z.polygon),dens=z.count/area,jam=scene.params.jam_density||JAM_DEFAULT;
+    box.innerHTML=`<div class="param-form">
+      ${param("ID",`<span class="readonly">${esc(z.id)}</span>`)}
+      ${param("名称",`<input class="wide" id="zName" value="${esc(z.name)}">`)}
+      ${param("人数（人）",num("zCount",z.count))}
+      ${param("人群类型",`<select id="zProf"><option value="seated" ${z.profile==="seated"?"selected":""}>seated 坐席</option><option value="standing" ${z.profile!=="seated"?"selected":""}>standing 站立</option></select>`)}
+      ${param("面积（m²）",`<span class="readonly">${area.toFixed(1)}</span>`)}
+      ${param("密度（人/m²）",`<span class="readonly ${dens>jam?"val-over":"val-ok"}">${dens.toFixed(2)}</span>`)}
+    </div>${actions(`<button class="ghost-danger" id="zDel">${I.trash}<span>删除该区</span></button>`,'<span class="hint">顶点可在 JSON 中精修</span>')}`;
+    $("zName").addEventListener("change",e=>{z.name=e.target.value;invalidate();});bindNum("zCount",v=>{z.count=Math.max(1,v);invalidate();});
+    $("zProf").addEventListener("change",e=>{z.profile=e.target.value;invalidate();});$("zDel").addEventListener("click",deleteSel);
+  } else if(sel.type==="obstacle"){
+    const ob=scene.geometry.obstacles.find(o=>o.name===sel.id);if(!ob){sel=null;return renderSel();}
+    box.innerHTML=`<div class="param-form">
+      ${param("名称",`<input class="wide" id="obName" value="${esc(ob.name)}">`)}
+      ${param("位置 x（m）",num("obX",ob.x,"0.1"))}
+      ${param("位置 y（m）",num("obY",ob.y,"0.1"))}
+      ${param("宽度（m）",num("obW",ob.w,"0.1"))}
+      ${param("高度（m）",num("obH",ob.h,"0.1"))}
+    </div>${actions(`<button class="ghost-danger" id="obDel">${I.trash}<span>删除固定障碍</span></button>`)}`;
+    $("obName").addEventListener("change",e=>{ob.name=e.target.value;sel.id=e.target.value;invalidate();});
+    [["obX","x"],["obY","y"],["obW","w"],["obH","h"]].forEach(([id,f])=>bindNum(id,v=>{ob[f]=Math.max(.1,v);invalidate();}));$("obDel").addEventListener("click",deleteSel);
+  } else if(sel.type==="facility"){
+    const f=facilities().find(f=>f.id===sel.id);if(!f){sel=null;return renderSel();}
+    const region=f.allowed_region?`${f.allowed_region.length} 个顶点 · 已启用`:"整个场馆";
+    box.innerHTML=`<div class="param-form">
+      ${param("ID",`<span class="readonly">${esc(f.id)}</span>`)}
+      ${param("名称",`<input class="wide" id="fName" value="${esc(f.name)}">`)}
+      ${param("中心 x（m）",num("fX",f.center[0],"0.1"))}
+      ${param("中心 y（m）",num("fY",f.center[1],"0.1"))}
+      ${param("旋转角度（°）",num("fRot",f.rotation_deg,"5"))}
+      ${param("长度（m）",num("fLen",f.length,"0.1"))}
+      ${param("宽度（m）",num("fWid",f.width,"0.1"))}
+      ${param("效应",'<span class="facility-badge">不可穿越</span>')}
+      ${param("移动权限",`<label class="checkline"><input type="checkbox" id="fMov" ${f.movable?"checked":""}>允许移动/旋转</label>`)}
+      ${param("尺寸权限",`<label class="checkline"><input type="checkbox" id="fResize" ${f.resizable?"checked":""}>允许改尺寸</label>`)}
+      ${param("允许区域",`<span class="hint">${region}</span>`)}
+    </div>${actions('<button id="fRegion">重置为当前外扩 2m</button>',`<button class="ghost-danger" id="fDel">${I.trash}<span>删除</span></button>`)}`;
+    $("fName").addEventListener("change",e=>{f.name=e.target.value;invalidate();});
+    bindNum("fX",v=>{f.center[0]=v;invalidate();});bindNum("fY",v=>{f.center[1]=v;invalidate();});bindNum("fRot",v=>{f.rotation_deg=v;invalidate();});
+    bindNum("fLen",v=>{f.length=Math.max(.1,v);invalidate();});bindNum("fWid",v=>{f.width=Math.max(.1,v);invalidate();});
+    $("fMov").addEventListener("change",e=>{f.movable=e.target.checked;invalidate();});$("fResize").addEventListener("change",e=>{f.resizable=e.target.checked;invalidate();});
+    $("fRegion").addEventListener("click",()=>{const [L,H]=scene.geometry.size,x0=clamp(f.center[0]-f.length/2-2,0,L),x1=clamp(f.center[0]+f.length/2+2,0,L),y0=clamp(f.center[1]-f.width/2-2,0,H),y1=clamp(f.center[1]+f.width/2+2,0,H);f.allowed_region=[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];invalidate();});
+    $("fDel").addEventListener("click",deleteSel);
+  } else if(sel.type==="exit"){
+    const ex=scene.exits.find(x=>x.id===sel.id);if(!ex){sel=null;return renderSel();}
+    box.innerHTML=`<div class="hint">出口 ${esc(ex.id)}『${esc(ex.name)}』的参数已在上方“出口”分区逐项展开，可在该处修改墙位、偏移和宽度。</div>`;
+  }
+}
+function renderProblems(){ const box=$("problemBox");if(!problems||!problems.length){box.innerHTML="";return;}box.innerHTML=problems.map(p=>`<div class="prob ${p.level}"><span class="pdot"></span><span>${esc(p.msg)}</span></div>`).join(""); }
+function setMode(m){
+  mode=m;dragStart=dragNow=null;
+  const buttons={select:"btnSelect",addZone:"btnZone",addObstacle:"btnObstacle",addFacility:"btnFacility"};
+  for(const [key,id] of Object.entries(buttons)){ $(id).classList.toggle("active",key===m);$(id).setAttribute("aria-pressed",String(key===m)); }
+  const hints={
+    select:["选择模式","单击地图对象进行编辑；滚轮缩放，<kbd>Delete</kbd> 删除选中对象。"],
+    addZone:["绘制人群区","在地图上按住并拖拽，松开后创建人群区并自动选中。"],
+    addObstacle:["绘制固定障碍","在地图上按住并拖拽，松开后创建固定障碍并自动选中。"],
+    addFacility:["绘制展台","在地图上按住并拖拽；单击则会创建默认 4m × 2m 展台。"]
+  };
+  $("modeHint").innerHTML=`<b>${hints[m][0]}</b>${hints[m][1]}`;
+  cv.style.cursor=m==="select"?"default":"crosshair";
+}
+
+$("btnCheck").addEventListener("click",()=>{
+  const result=runCheck(),ne=result.filter(p=>p.level==="error").length,nw=result.filter(p=>p.level==="warning").length;
+  notify(ne?`校验完成：${ne} 个错误、${nw} 个警告，请查看下方问题列表。`:nw?`校验完成：无错误，${nw} 个警告。`:"校验通过，未发现问题。",ne?"error":nw?"info":"success");
+});
+$("btnSelect").addEventListener("click",()=>setMode("select"));
+$("btnZone").addEventListener("click",()=>setMode("addZone"));
+$("btnObstacle").addEventListener("click",()=>setMode("addObstacle"));
+$("btnFacility").addEventListener("click",()=>setMode("addFacility"));
+$("btnSave").addEventListener("click",()=>{
+  const result=runCheck();
+  if(result.some(p=>p.level==="error")&&!confirm("存在错误级问题，仍要保存吗？")) return;
+  if(dirty){scene.meta.parent_revision=scene.meta.revision||1;scene.meta.revision=(scene.meta.revision||1)+1;dirty=false;refreshAll();}
+  scene.meta.created=new Date().toISOString().slice(0,10);
+  const blob=new Blob([JSON.stringify(scene,null,2)],{type:"application/json"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=`${scene.meta.name.replace(/\s+/g,"_")}_scene.json`;a.click();URL.revokeObjectURL(a.href);
+  notify("场景 JSON 已生成并下载。","success");
+});
+$("btnLoad").addEventListener("click",()=>{notify("已打开文件选择窗口，请选择要加载的场景 JSON。");$("fileIn").click();});
+$("fileIn").addEventListener("change",e=>{
+  const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{
+    const s=JSON.parse(rd.result);if(!["0.1","0.2"].includes(s.version))throw new Error(`不支持版本 ${s.version}`);
+    ["meta","geometry","exits","crowd","params"].forEach(k=>{if(!s[k])throw new Error(`缺少字段 ${k}`);});
+    if(!Array.isArray(s.geometry.obstacles))s.geometry.obstacles=[];
+    if(!Array.isArray(s.geometry.facilities))s.geometry.facilities=[];
+    if(!Array.isArray(s.geometry.walls))s.geometry.walls=[];
+    s.version=VERSION;s.meta.revision=s.meta.revision||1;s.geometry.layout_policy=s.geometry.layout_policy||{min_passage_width:DEFAULT_MIN_PASSAGE,exit_clearance:DEFAULT_EXIT_CLEARANCE};
+    scene=s;sel=null;problems=null;badCells=[];dirty=false;clampExits();fitView();refreshAll();notify(`已加载 ${f.name}，请重新校验。`,"success");
+  }catch(err){notify("加载失败："+err.message,"error");} };
+  rd.readAsText(f,"utf-8");e.target.value="";
+});
+$("btnReset").addEventListener("click",()=>{if(!confirm("重置为复杂场馆示例？未保存的修改将丢失。"))return;scene=defaultScene();sel=null;problems=null;badCells=[];dirty=false;fitView();refreshAll();notify("已恢复复杂场馆示例，请重新校验。","success");});
+$("zoomIn").addEventListener("click",()=>zoomAt(1.25));$("zoomOut").addEventListener("click",()=>zoomAt(.8));$("fitView").addEventListener("click",fitView);
+for(const [id,key] of [["layerZones","showZones"],["layerFacilities","showFacilities"],["layerRegions","showRegions"],["layerGrid","showGrid"]])
+  $(id).addEventListener("change",e=>{if(key==="showZones")showZones=e.target.checked;if(key==="showFacilities")showFacilities=e.target.checked;if(key==="showRegions")showRegions=e.target.checked;if(key==="showGrid")showGrid=e.target.checked;draw();});
+window.addEventListener("resize",resizeCanvas);
+
+setMode("select");resizeCanvas();refreshAll();runCheck();
+</script>
+</body>
+</html>

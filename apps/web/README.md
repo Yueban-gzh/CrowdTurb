@@ -93,3 +93,10 @@ python -m http.server 8000
 - `lib/three.module.js` — three.js r169（npm 包 `three@0.169` 的 module 构建），SHA-256 `0a3368c165eea773490aec7b77c22de70e3eac288503409256fdbf4d12578416`
 - `lib/OrbitControls.js` — three.js r169 官方 examples 控制器（本地适配版），SHA-256 `80efaadea4f8a636a65fb0bd08bfef62f3d93a0bb94e2e7500f23176c5c07f4e`
 - 技术栈最终去留由 BOOT-08 评审决定；确认后若引入包管理，以上文件改由锁文件管理
+# Web 模块
+
+A 负责场景配置，B 负责 3D / 俯视与回放，E 协调统一入口。
+
+A 的本地实现位于 [scene-config](scene-config/README.md)，包含静态网页编辑器、场景校验、栅格化和候选布局接口；它使用 A-local v0.2，不修改共享契约。B 的 3D/俯视与回放、E 的统一入口和产品框架仍待实现。
+
+先联合评审 [契约](../../contracts/README.md)，使用 [Mock 样例](../../examples/README.md) 独立推进；技术栈确认后增加产品代码、锁文件、启动步骤和对应测试。场景编辑、场数据读取和显示层应保持清晰边界。

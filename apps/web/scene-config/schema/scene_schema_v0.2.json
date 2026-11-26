@@ -1,0 +1,218 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "archflow/scene_schema_v0.2",
+  "title": "ArchFlow AI 场景数据格式 v0.2（A 模块权威格式，含参数化设施与可变参数声明）",
+  "description": "在 v0.1 基础上增加 geometry.facilities：可移动/可改尺寸的旋转矩形设施，以及供 B 展示参数前后差异的 variable_parameters。固定障碍仍用 geometry.obstacles（轴对齐、不可移动）。坐标单位米，原点场地左下角，x 向右、y 向上；栅格规则为格心落在设施内即不可通行。",
+  "type": "object",
+  "required": ["version", "meta", "geometry", "exits", "crowd", "params"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "0.2",
+      "description": "格式版本号，接口变化必须升版本并组内确认"
+    },
+    "meta": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "description": "场景名称，如：示例体育馆" },
+        "author": { "type": "string", "description": "创建者" },
+        "created": { "type": "string", "description": "创建时间 ISO8601" },
+        "notes": { "type": "string", "description": "备注" },
+        "revision": { "type": "integer", "minimum": 1, "description": "场景修订号，候选修改时递增" },
+        "parent_revision": { "type": ["integer", "null"], "minimum": 1, "description": "由哪个修订生成；原场景为 null" }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "required": ["size", "resolution"],
+      "properties": {
+        "size": {
+          "type": "array", "minItems": 2, "maxItems": 2,
+          "items": { "type": "number", "exclusiveMinimum": 0 },
+          "description": "场地 [长L(x方向), 宽H(y方向)]，单位米"
+        },
+        "resolution": {
+          "type": "number", "exclusiveMinimum": 0,
+          "description": "栅格分辨率（米/格）。默认 0.5；决定 C 的计算网格与 FNO 输入尺寸"
+        },
+        "walls": {
+          "type": "array",
+          "items": {
+            "type": "array", "minItems": 4, "maxItems": 4,
+            "items": { "type": "number" }
+          },
+          "description": "内部隔墙线段 [x1,y1,x2,y2]。v0.2 示例为空"
+        },
+        "obstacles": {
+          "type": "array",
+          "description": "固定障碍（舞台、器材室等），轴对齐矩形，不可移动",
+          "items": {
+            "type": "object",
+            "required": ["name", "x", "y", "w", "h"],
+            "properties": {
+              "name": { "type": "string", "description": "障碍名称" },
+              "x": { "type": "number", "description": "矩形左下角 x" },
+              "y": { "type": "number", "description": "矩形左下角 y" },
+              "w": { "type": "number", "exclusiveMinimum": 0, "description": "宽（x方向，米）" },
+              "h": { "type": "number", "exclusiveMinimum": 0, "description": "高（y方向，米）" }
+            }
+          }
+        },
+        "facilities": {
+          "type": "array",
+          "description": "参数化设施（临时展台等）。第一版只支持不可穿越的固定尺寸旋转矩形；服务点/速度影响区后续扩展。",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "center", "length", "width", "rotation_deg", "movable", "resizable"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1, "description": "唯一编号，如 F1" },
+              "name": { "type": "string", "description": "显示名" },
+              "kind": { "type": "string", "description": "可选类别，如 exhibit / equipment；不参与计算" },
+              "effect": { "const": "block", "description": "第一版只支持不可穿越；速度影响区/服务点后续版本再扩展" },
+              "center": {
+                "type": "array", "minItems": 2, "maxItems": 2,
+                "items": { "type": "number" },
+                "description": "中心 [x, y]，米"
+              },
+              "length": { "type": "number", "exclusiveMinimum": 0, "description": "沿局部 x 轴的长度，米" },
+              "width": { "type": "number", "exclusiveMinimum": 0, "description": "沿局部 y 轴的宽度，米" },
+              "rotation_deg": { "type": "number", "description": "绕中心逆时针旋转角度，度；0 表示 length 沿世界 x 轴" },
+              "movable": { "type": "boolean", "description": "是否允许修改 center / rotation_deg" },
+              "resizable": { "type": "boolean", "description": "是否允许修改 length / width" },
+              "size_limits": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["length", "width"],
+                "properties": {
+                  "length": {
+                    "type": "array", "minItems": 2, "maxItems": 2,
+                    "items": { "type": "number", "exclusiveMinimum": 0 },
+                    "description": "[min, max] 米"
+                  },
+                  "width": {
+                    "type": "array", "minItems": 2, "maxItems": 2,
+                    "items": { "type": "number", "exclusiveMinimum": 0 },
+                    "description": "[min, max] 米"
+                  }
+                },
+                "description": "resizable=true 时必填"
+              },
+              "allowed_region": {
+                "type": "array", "minItems": 3,
+                "items": {
+                  "type": "array", "minItems": 2, "maxItems": 2,
+                  "items": { "type": "number" }
+                },
+                "description": "允许移动区域多边形 [[x,y], ...]；省略表示整个场地。设施矩形必须完整落在该区域内。"
+              }
+            }
+          }
+        },
+        "layout_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "min_passage_width": { "type": "number", "minimum": 0, "description": "最小必要通路宽度（米），默认 0.9；0=不检查" },
+            "exit_clearance": { "type": "number", "minimum": 0, "description": "设施到出口开口的最小距离（米），默认 0.5" }
+          },
+          "description": "可选布局约束参数；影响 validate 的硬约束"
+        }
+      }
+    },
+    "exits": {
+      "type": "array",
+      "description": "出口。v0.2 出口只允许开在外边界墙上；side + offset 定位，width 为开口宽度",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "side", "offset", "width"],
+        "properties": {
+          "id": { "type": "string", "description": "出口唯一 ID，如 E1" },
+          "name": { "type": "string", "description": "显示名，如 南侧主出口" },
+          "side": { "enum": ["N", "S", "E", "W"], "description": "在哪面墙：N=y=H 北墙，S=y=0 南墙，E=x=L 东墙，W=x=0 西墙" },
+          "offset": {
+            "type": "number",
+            "description": "开口起点沿墙的偏移量（米）。N/S 墙从 x=0 起量，E/W 墙从 y=0 起量"
+          },
+          "width": { "type": "number", "exclusiveMinimum": 0, "description": "开口宽度（米）" }
+        }
+      }
+    },
+    "crowd": {
+      "type": "object",
+      "required": ["zones"],
+      "properties": {
+        "zones": {
+          "type": "array",
+          "description": "初始人群分布。区域为任意多边形；栅格化后区域内均匀分布 count 人。设施不能再覆盖这些区域。",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "polygon", "count"],
+            "properties": {
+              "id": { "type": "string", "description": "区域唯一 ID，如 Z1" },
+              "name": { "type": "string", "description": "显示名，如 看台西侧" },
+              "polygon": {
+                "type": "array", "minItems": 3,
+                "items": {
+                  "type": "array", "minItems": 2, "maxItems": 2,
+                  "items": { "type": "number" }
+                },
+                "description": "多边形顶点 [[x,y], ...]，单位米"
+              },
+              "count": { "type": "number", "exclusiveMinimum": 0, "description": "区域内人数" },
+              "profile": {
+                "enum": ["seated", "standing"],
+                "description": "人群类型：seated=坐席（看台），standing=站立/流动。留给 C/D 做参数区分用"
+              }
+            }
+          }
+        }
+      }
+    },
+    "variable_parameters": {
+      "type": "array",
+      "description": "A 本地可变建筑参数声明，供 B 展示参数前后差异；不改变共享 CrowdTurb 契约，也不直接参与栅格化。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "type", "target_id", "unit", "allowed_range", "current_value"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "description": "参数显示名，必须唯一" },
+          "type": {
+            "enum": ["exit_width", "facility_center_x", "facility_center_y", "facility_rotation", "facility_length", "facility_width"],
+            "description": "参数类型；当前支持出口宽度和矩形设施的中心、旋转、尺寸"
+          },
+          "target_id": { "type": "string", "minLength": 1, "description": "出口或设施的真实对象 ID" },
+          "unit": { "enum": ["m", "deg"], "description": "参数单位" },
+          "allowed_range": {
+            "type": "array", "minItems": 2, "maxItems": 2,
+            "items": { "type": "number" },
+            "description": "[min, max]；旋转角范围为 [0, 360]"
+          },
+          "current_value": { "type": "number", "description": "当前场景中的参数值，必须与 target_id 指向对象一致" },
+          "scene_description": { "type": "string", "minLength": 1, "description": "参数变化后的场景说明" },
+          "scene_diff": {
+            "type": "array", "minItems": 1, "maxItems": 1,
+            "items": { "type": "object" },
+            "description": "当前值对应的可应用差异；设施使用 facility_id，出口宽度使用 exit_id"
+          }
+        },
+        "oneOf": [
+          { "required": ["scene_description"] },
+          { "required": ["scene_diff"] }
+        ]
+      }
+    },
+    "params": {
+      "type": "object",
+      "required": ["walk_speed", "T"],
+      "properties": {
+        "walk_speed": { "type": "number", "exclusiveMinimum": 0, "description": "自由步行速度 m/s，默认 1.2" },
+        "T": { "type": "number", "exclusiveMinimum": 0, "description": "仿真总时长（秒）" },
+        "dt": { "type": "number", "exclusiveMinimum": 0, "description": "（可选）建议时间步长（秒），供 C 参考" },
+        "jam_density": { "type": "number", "exclusiveMinimum": 0, "description": "（可选）拥堵密度阈值 人/m²，默认 4.0，D 的拥堵指标可参考" }
+      }
+    }
+  }
+}
