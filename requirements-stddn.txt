@@ -1,0 +1,2 @@
+-r requirements-workbench.txt
+onnxruntime==1.20.1

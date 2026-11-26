@@ -25,13 +25,16 @@ from apps.api.crowdturb.service import AppService
 
 
 class ApiServerHarness:
-    def __init__(self, database_path: Path, team_fixtures: Path | None = None) -> None:
+    def __init__(
+        self, database_path: Path, team_fixtures: Path | None = None, model_path: Path | None = None,
+    ) -> None:
         self.server = ApiServer(
             host="127.0.0.1",
             port=0,
             database_path=database_path,
             seed_demo=False,
             team_fixtures=team_fixtures,
+            model_path=model_path,
         )
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -198,8 +201,100 @@ class SystemApiTests(unittest.TestCase):
         self.assertEqual(self.api.request("GET", "/api/review-runs"), (200, {"runs": []}))
 
 
-@unittest.skipUnless(os.environ.get("CROWDTURB_TEAM_FIXTURES"), "requires a D branch snapshot")
+@unittest.skipUnless(os.environ.get("CROWDTURB_TEAM_FIXTURES"), "requires the integrated repository root")
 class TeamReviewTests(unittest.TestCase):
+    def check_passage_run(self, model_path=None):
+        fixture_root = Path(os.environ["CROWDTURB_TEAM_FIXTURES"])
+        binding = {"type": "passage_width", "target_id": "P1"}
+        with tempfile.TemporaryDirectory() as temp:
+            api = ApiServerHarness(Path(temp) / "passage.sqlite3", fixture_root, model_path)
+            try:
+                scene = api.request("GET", "/api/workbench/scene")[1]["scene"]
+                self.assertEqual(scene["version"], "0.3")
+                scene["geometry"]["passages"][0]["width"] = 6
+                declaration = next(p for p in scene["variable_parameters"] if p["type"] == "passage_width")
+                declaration["current_value"] = 6
+                declaration["scene_diff"] = [{"passage_id": "P1", "width": 6}]
+                status, queued = api.request("POST", "/api/workbench/runs", {"scene": scene, "parameter": binding})
+                self.assertEqual(status, 202, queued)
+                saved = self.wait_for_preview(api, queued["run"]["run_id"])
+                run = saved["run"]
+                self.assertEqual(run["status"], "succeeded", run)
+                self.assertEqual(saved["scene"]["geometry"]["passages"][0]["width"], 6)
+                self.assertGreater(len(run["views"]), 1)
+                artifacts = []
+                for view in run["views"]:
+                    prefix = f"/api/workbench/runs/{run['run_id']}/views/{view}"
+                    manifest = api.request("GET", prefix)[1]
+                    bundle = {key: api.request("GET", url)[1] for key, url in manifest["artifacts"].items()}
+                    trajectory = bundle["trajectory"]
+                    self.assertEqual(trajectory["source"], "stddn" if model_path else "mock")
+                    for key in ("field", "analysis"):
+                        self.assertEqual(bundle[key]["input_hash"], trajectory["input_hash"])
+                    self.assertEqual(bundle["scene"]["provenance"]["input_hash"], trajectory["input_hash"])
+                    artifacts.append(bundle)
+                baseline = artifacts[0]
+                for candidate in artifacts[1:]:
+                    self.assertNotEqual(candidate["scene"]["obstacle_mask"], baseline["scene"]["obstacle_mask"])
+                    self.assertNotEqual(candidate["trajectory"]["input_hash"], baseline["trajectory"]["input_hash"])
+                    self.assertEqual(candidate["trajectory"]["initial_state_hash"], baseline["trajectory"]["initial_state_hash"])
+                    self.assertEqual(candidate["trajectory"]["simulation_settings"], baseline["trajectory"]["simulation_settings"])
+            finally:
+                api.close()
+
+    def test_passage_edit_reaches_geometry_analysis_and_comparison(self):
+        self.check_passage_run()
+
+    @unittest.skipUnless(os.environ.get("CROWDTURB_ONNX_MODEL"), "requires the team's local ONNX file")
+    def test_passage_candidates_use_the_real_onnx_adapter(self):
+        self.check_passage_run(Path(os.environ["CROWDTURB_ONNX_MODEL"]))
+
+    @unittest.skipUnless(os.environ.get("CROWDTURB_ONNX_MODEL"), "requires the team's local ONNX file")
+    def test_stddn_reaches_b_and_d_with_a_real_candidate(self) -> None:
+        fixture_root = Path(os.environ["CROWDTURB_TEAM_FIXTURES"])
+        model_path = Path(os.environ["CROWDTURB_ONNX_MODEL"])
+        scene_path = Path(__file__).resolve().parents[2] / "examples/workbench.route-demo.json"
+        scene = json.loads(scene_path.read_text(encoding="utf-8"))
+        binding = {"type": "facility_center_x", "target_id": "F1"}
+        with tempfile.TemporaryDirectory() as temp:
+            api = ApiServerHarness(Path(temp) / "stddn.sqlite3", fixture_root, model_path)
+            try:
+                status, payload = api.request("POST", "/api/workbench/runs", {
+                    "scene": scene, "parameter": binding,
+                })
+                self.assertEqual(status, 202, payload)
+                self.assertEqual(payload["run"]["source"], "stddn")
+                run = self.wait_for_preview(api, payload["run"]["run_id"])["run"]
+                self.assertEqual(run["status"], "succeeded", run)
+                self.assertEqual(run["parameter"], binding)
+                self.assertEqual(len(run["views"]), 2)
+                self.assertEqual(len(run["model_sha256"]), 64)
+                artifacts = []
+                for view in run["views"]:
+                    prefix = f"/api/workbench/runs/{run['run_id']}/views/{view}"
+                    manifest = api.request("GET", prefix)[1]
+                    self.assertEqual(manifest["source"], "stddn")
+                    bundle = {name: api.request("GET", url)[1] for name, url in manifest["artifacts"].items()}
+                    trajectory = bundle["trajectory"]
+                    self.assertEqual(len(trajectory["exit_events"]), 44)
+                    self.assertFalse(trajectory["frames"][-1]["agents"])
+                    self.assertEqual({event["exit_id"] for event in trajectory["exit_events"]}, {"E1"})
+                    self.assertEqual(bundle["analysis"]["input_hash"], trajectory["input_hash"])
+                    self.assertEqual(bundle["field"]["input_hash"], trajectory["input_hash"])
+                    self.assertEqual(bundle["scene"]["provenance"]["input_hash"], trajectory["input_hash"])
+                    artifacts.append(bundle)
+                baseline, candidate = artifacts
+                self.assertNotEqual(baseline["route"]["points_m"], candidate["route"]["points_m"])
+                self.assertNotEqual(baseline["scene"]["obstacle_mask"], candidate["scene"]["obstacle_mask"])
+                resolved = next(row for row in run["comparison"]["candidates"] if row["candidate_id"] == run["views"][1])
+                self.assertEqual(resolved["changes"], [{"facility_id": "F1", "center": [18.5, 5]}])
+                baseline, candidate = baseline["trajectory"], candidate["trajectory"]
+                self.assertNotEqual(baseline["input_hash"], candidate["input_hash"])
+                self.assertEqual(baseline["initial_state_hash"], candidate["initial_state_hash"])
+                self.assertEqual(baseline["simulation_settings"], candidate["simulation_settings"])
+            finally:
+                api.close()
+
     def test_workbench_reruns_edited_geometry_without_hash_drift(self) -> None:
         from importlib.util import find_spec
 

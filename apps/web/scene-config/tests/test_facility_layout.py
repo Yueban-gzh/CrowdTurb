@@ -302,7 +302,7 @@ class VariableParameterTests(unittest.TestCase):
             d.pop("name")
 
         def unsupported_type(d):
-            d["type"] = "passage_width"
+            d["type"] = "unknown_parameter"
 
         def non_string_type(d):
             d["type"] = ["exit_width"]

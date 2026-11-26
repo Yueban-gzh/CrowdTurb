@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CrowdTurb fixed-population trajectory proposal 0.2.0",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "result_id", "scene_id", "scene_revision", "input_hash", "initial_state_hash", "source", "population_mode", "model_sha256", "reproducibility_record", "simulation_settings", "grid", "walkable", "exit_ids", "frames", "exit_events"],
+  "properties": {
+    "schema_version": {"const": "0.2.0"},
+    "result_id": {"type": "string", "minLength": 1},
+    "scene_id": {"type": "string", "minLength": 1},
+    "scene_revision": {"type": "integer", "minimum": 1},
+    "input_hash": {"$ref": "#/$defs/hash"},
+    "initial_state_hash": {"$ref": "#/$defs/hash"},
+    "behavior_hash": {"$ref": "#/$defs/hash", "description": "Initial fixed behavior attributes digest; required for strict comparison"},
+    "source": {"enum": ["mock", "stddn"]},
+    "population_mode": {"const": "fixed_closed"},
+    "model_sha256": {"anyOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]},
+    "reproducibility_record": {"type": ["string", "null"], "minLength": 1},
+    "simulation_settings": {
+      "type": "object", "additionalProperties": false,
+      "required": ["dt_s", "seed", "integrator", "planner_version", "collision_version"],
+      "properties": {
+        "dt_s": {"type": "number", "exclusiveMinimum": 0},
+        "seed": {"type": ["integer", "null"]},
+        "integrator": {"type": "string", "minLength": 1},
+        "planner_version": {"type": "string", "minLength": 1},
+        "collision_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "grid": {"$ref": "#/$defs/grid"},
+    "walkable": {"type": "array", "minItems": 1, "items": {"type": "array", "minItems": 1, "items": {"type": "boolean"}}},
+    "exit_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "frames": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["time_s", "agents"],
+        "properties": {
+          "time_s": {"type": "number", "minimum": 0},
+          "agents": {
+            "type": "array",
+            "items": {
+              "type": "object", "additionalProperties": false, "required": ["agent_id", "position_m", "velocity_mps"],
+              "properties": {"agent_id": {"type": "string", "minLength": 1}, "position_m": {"$ref": "#/$defs/vector"}, "velocity_mps": {"$ref": "#/$defs/vector"}}
+            }
+          }
+        }
+      }
+    },
+    "exit_events": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["agent_id", "exit_id", "time_s"],
+        "properties": {"agent_id": {"type": "string", "minLength": 1}, "exit_id": {"type": "string", "minLength": 1}, "time_s": {"type": "number", "exclusiveMinimum": 0}}
+      }
+    }
+  },
+  "allOf": [{"if": {"properties": {"source": {"const": "stddn"}}}, "then": {"properties": {"model_sha256": {"$ref": "#/$defs/hash"}, "reproducibility_record": {"type": "string", "minLength": 1}}}}],
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "vector": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}], "items": false, "minItems": 2},
+    "grid": {
+      "type": "object", "additionalProperties": false, "required": ["nx", "ny", "dx", "dy", "origin"],
+      "properties": {"nx": {"type": "integer", "minimum": 1}, "ny": {"type": "integer", "minimum": 1}, "dx": {"type": "number", "exclusiveMinimum": 0}, "dy": {"type": "number", "exclusiveMinimum": 0}, "origin": {"$ref": "#/$defs/vector"}}
+    }
+  }
+}

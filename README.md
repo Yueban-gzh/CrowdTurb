@@ -1,10 +1,10 @@
 # CrowdTurb
 
-智能软件工程课程项目：面向单层场馆的连续人流仿真与建筑布局优化原型。
+智能软件工程课程项目：面向单层场馆的人流仿真与建筑布局优化原型。
 
-四周内跑通 **配置 → PDE 计算 → 3D 展示 → 拥堵分析 → 布局优化 → 同条件对比**。五名成员各自负责一个模块，通过共同的数据契约集成。
+四周内跑通 **配置 → STDDN 个体仿真 → 聚合分析 → 3D / 俯视回放 → 候选布局 → 同条件对比**。五名成员各自负责一个模块，通过共同的数据契约集成。路线变更见 [ADR 0002](docs/decisions/0002-stddn-trajectory-and-passage.md)。
 
-**当前状态：W1 系统底座可运行，待团队评审。** 已有统一 Web 入口、项目 / 场景版本持久化、任务状态机、Mock 任务成功与失败链路，以及给 A-D 的模块插槽。尚无 PDE 求解器、FNO 模型、3D 可视化、指标或布局优化；Mock 数据只用于联调。
+**当前状态：D/E 集成版待团队评审。** 工作台使用当前仓库的 A 场景、B 回放和 D 分析；支持出口、通道净宽、设施位置，异步任务、持久化、候选比较与同屏回放。默认 Mock；提供本地 ONNX 文件后运行 STDDN 原型。已有受控小场验证，模型对真实场馆的适用性及课程整体验收仍待完成。验证范围见 [D/E 集成证据](docs/evidence/2026-11-27-DE-integration.md)。
 
 ## 新成员从这里开始
 
@@ -12,21 +12,23 @@
 2. 阅读 [分工与四周计划](docs/plan.md)，在组会上将 A–E 对应到实际成员。
 3. 阅读 [数据契约](contracts/README.md)，用 [示例数据](examples/README.md) 并行开发。
 4. 从 [首周任务](docs/backlog.md) 认领任务，按 [协作约定](CONTRIBUTING.md) 提交 PR。
-5. 按下方命令启动 W1 系统底座，并运行检查。
+5. 按下方命令启动集成工作台，并运行检查。
 
-## 启动 W1 系统底座
+## 启动集成工作台
 
-跨模块产品原型的启动和复现方式见 [合并原型](docs/evidence/2026-11-26-integrated-prototype.md)。它复用 A 场景编辑、D 的分析与 B 的回放。
+启动直接使用当前 checkout 的 A/B/D，不下载其他分支快照。ONNX 接入、参数选择与产物 API 见 [工作台联调接口](docs/workbench-interfaces.md)。
 
 当前只用 Python 标准库 HTTP 服务、SQLite 和原生 HTML / CSS / JavaScript，避免在 BOOT-08 技术评审前锁定产品框架。完整边界见 [W1 系统底座 ADR](docs/decisions/0002-w1-system-bootstrap.md)。
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-api.txt
-.\.venv\Scripts\python.exe -m apps.api.crowdturb --port 8000
+.\.venv\Scripts\python.exe -m pip install -r requirements-workbench.txt
+.\.venv\Scripts\python.exe tools/start_workbench.py
 ```
 
-打开 `http://127.0.0.1:8000`。默认数据库为 `data/crowdturb.sqlite3`，首次启动会创建一个 Mock 示例项目。选择 PDE 或 FNO 可以检查“尚未接入”的失败反馈；两者不会伪造结果。
+打开 `http://127.0.0.1:8770`，默认数据库为 `data/workbench.sqlite3`。省略模型时显示 Mock；真实运行先安装 `requirements-stddn.txt`，再加 `--onnx-model "<本地 ONNX 路径>"`。模型权重不入库。
+
+原 W1 项目 / 场景 API 仍可用 `python -m apps.api.crowdturb --port 8000` 启动，保留历史 PDE/FNO 未配置失败检查。
 
 ## 本地检查
 
@@ -37,18 +39,21 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe tools/check_repository.py
 .\.venv\Scripts\python.exe -m unittest discover -s tests/contracts -v
+$env:CROWDTURB_TEAM_FIXTURES = (Get-Location).Path
+.\.venv\Scripts\python.exe -m unittest discover -s apps/web/scene-config/tests -v
+.\.venv\Scripts\python.exe -m unittest discover -s packages/analysis/tests -v
 .\.venv\Scripts\python.exe -m unittest discover -s tests/system -v
 ```
 
-macOS / Linux 使用 `.venv/bin/python` 替代 `.\.venv\Scripts\python.exe`。检查覆盖契约、示例一致性、需求追踪条目、文档链接和原始资料校验值，不能证明求解算法或产品已经正确。
+macOS / Linux 使用 `.venv/bin/python`，并设置 `export CROWDTURB_TEAM_FIXTURES="$PWD"`。真实 ONNX 系统用例还需 `requirements-stddn.txt` 与 `CROWDTURB_ONNX_MODEL`；未设置时明确跳过。CI 执行 Windows / Ubuntu 回归及 Chromium 浏览器联调，不包含模型权重或真实模型适用性实验。
 
 ## 目录
 
 ```text
-apps/web/             E：统一入口；A/B 的场景、3D 与指标插槽
+apps/web/             E 工作台、A 场景编辑器、B 3D / 俯视回放
 apps/api/             E：项目保存、场景版本、任务调度与结果 API
-packages/solver/      C：PDE 与 FNO 的预留位置
-packages/analysis/    D：指标与候选搜索的预留位置
+packages/solver/      C：独立求解器预留；现有 ONNX 适配位于 apps/api/crowdturb
+packages/analysis/    D：轨迹聚合、指标 / 热点、候选采样与公平比较
 contracts/            版本化 JSON Schema 与接口约定
 examples/             可共享的合成场馆和 Mock 场结果
 tests/                契约检查；产品测试随实现补充
@@ -62,7 +67,7 @@ React / TypeScript、Python / FastAPI 等仍为候选，尚未安装或锁定。
 ## 如何体现软件工程
 
 - 需求工程：为必做能力编号，写清可观察的验收条件，并区分需求来源与团队新增设计。
-- 迭代与风险管理：每周交付可演示增量；优先保证 PDE 闭环，记录 FNO 的回退决策。
+- 迭代与风险管理：每周交付可演示增量；先验证完整 STDDN 轨迹，再验证同条件候选，记录模型局限与失败。
 - 模块化与契约设计：五人按模块负责，先对齐输入输出；跨模块变化共同评审。
 - 配置与变更管理：Issue → 分支 → PR → 评审 → 检查 → 合并；保留需求与设计变更记录。
 - 验证与确认：将需求关联到测试、实验及实际结果；未执行和 Mock 证据始终明确标注。
@@ -74,7 +79,7 @@ React / TypeScript、Python / FastAPI 等仍为候选，尚未安装或锁定。
 
 项目现名 **CrowdTurb**。原始材料使用旧名 ArchFlow AI；当前基线采用 V5 四周 PRD 和 V5 五人计划，V0.1 概念说明保留作背景。版本差异、原件和校验值见 [资料索引](docs/references/README.md)。
 
-产品必须保留 PDE 评价路径；FNO 需留下训练、推理或失败尝试及误差实验记录，是否接入产品由实验决定。示意粒子是连续场的可视化，不是经过验证的真实个体轨迹。结果用于课程方案比较。
+当前主线为 STDDN，PDE/FNO 为可选历史或独立对照。模型轨迹、实测轨迹与 Mock 必须区分；当前导航、碰撞与离场规则尚待 C 校准。结果用于课程方案比较。
 
 ## GitHub
 

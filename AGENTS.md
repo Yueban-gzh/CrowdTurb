@@ -21,7 +21,7 @@ This file applies to the whole repository unless a deeper `AGENTS.md` overrides 
 
 - A owns scene geometry, exits, adjustable parameters, and geometry validation.
 - B owns 3D / top-down rendering, particles, heatmaps, and playback.
-- C owns PDE/FNO execution, numerical checks, and experiment records.
+- C owns complete STDDN simulation, routing/collision/exit behavior, model validation, and experiment records.
 - D owns metrics, hotspots, candidate generation, ranking, and fair comparison.
 - E owns the service shell, persistence, task orchestration, API, integration, deployment, and acceptance coordination.
 
@@ -41,7 +41,7 @@ For the W1 system shell, also start `python -m apps.api.crowdturb` and verify th
 
 - AI-generated changes are drafts. The person submitting them remains responsible for correctness, scope, licensing, and review.
 - Record material AI assistance in `docs/ai/usage-log.md` with task, inputs, output, verification, and review status.
-- Never use AI output as experimental evidence. PDE/FNO accuracy, performance, and optimization claims require real runs and reproducible records.
+- Never use AI output as experimental evidence. STDDN accuracy, performance, and optimization claims require real runs and reproducible records; PDE/FNO are optional historical or independent comparisons.
 - Never send secrets, tokens, private keys, or unnecessary personal data to an AI tool or commit them.
 - Do not change contract semantics, mark a requirement verified, or fabricate a result just because an AI agent suggested it.
 
@@ -49,5 +49,5 @@ For the W1 system shell, also start `python -m apps.api.crowdturb` and verify th
 
 - Use `Issue → short branch → focused PR → review → checks → merge` when the user or team requests Git actions.
 - Do not commit unless asked. Do not rewrite history or discard unrelated work.
-- Keep Mock, PDE, and FNO provenance distinct in code, UI, tests, and reports.
+- Keep Mock and STDDN provenance distinct in code, UI, tests, and reports; retain PDE/FNO labels only for their actual historical or independent runs.
 - Prefer Chinese product documentation and English identifiers, matching the existing repository style.

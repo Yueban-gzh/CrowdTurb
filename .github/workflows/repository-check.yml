@@ -27,8 +27,14 @@ jobs:
         run: python tools/check_repository.py
       - name: Reject invalid integration payloads
         run: python -m unittest discover -s tests/contracts -v
+      - name: Check A geometry and passage candidates
+        run: python -m unittest discover -s apps/web/scene-config/tests -v
+      - name: Check D analysis and comparison
+        run: python -m unittest discover -s packages/analysis/tests -v
       - name: Run system base API tests
         run: python -m unittest discover -s tests/system -v
+        env:
+          CROWDTURB_TEAM_FIXTURES: ${{ github.workspace }}
 
   workbench-integration:
     name: workbench-integration
@@ -46,7 +52,7 @@ jobs:
           node-version: '22'
       - name: Install application dependencies
         run: python -m pip install -r requirements-workbench.txt
-      - name: Prepare pinned team snapshots and viewer
+      - name: Prepare local integrated modules and viewer
         run: python tools/start_workbench.py --prepare-only >> "$GITHUB_ENV"
       - name: Run task and artifact integration tests
         run: python -m unittest discover -s tests/system -v

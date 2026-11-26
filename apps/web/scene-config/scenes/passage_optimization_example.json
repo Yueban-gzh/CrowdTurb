@@ -1,0 +1,18 @@
+{
+  "version": "0.3",
+  "meta": {"name": "通道与展台优化基准", "author": "D", "created": "2026-11-25", "revision": 1, "parent_revision": null, "notes": "合成几何案例，无真实仿真结论。通道宽度改变其两侧隔挡。"},
+  "geometry": {
+    "size": [30.0, 20.0], "resolution": 0.5, "walls": [], "obstacles": [],
+    "layout_policy": {"min_passage_width": 0.9, "exit_clearance": 0.5},
+    "passages": [{"id": "P1", "name": "中部南北通道", "center": [15.0, 10.0], "direction": "y", "length": 4.0, "width": 4.0, "envelope_width": 30.0, "width_limits": [2.0, 6.0], "adjustable": true}],
+    "facilities": [{"id": "F1", "name": "南侧展台", "effect": "block", "center": [9.0, 5.0], "length": 3.0, "width": 2.0, "rotation_deg": 0.0, "movable": true, "resizable": false, "allowed_region": [[5.0, 3.0], [25.0, 3.0], [25.0, 7.0], [5.0, 7.0]]}]
+  },
+  "exits": [{"id": "E1", "name": "南出口", "side": "S", "offset": 12.0, "width": 6.0}],
+  "crowd": {"zones": [{"id": "Z1", "name": "北侧人群", "polygon": [[5.0, 14.0], [25.0, 14.0], [25.0, 18.0], [5.0, 18.0]], "count": 80, "profile": "standing"}]},
+  "params": {"walk_speed": 1.2, "T": 60, "dt": 0.08, "jam_density": 4.0},
+  "variable_parameters": [
+    {"name": "南出口宽度", "type": "exit_width", "target_id": "E1", "unit": "m", "allowed_range": [4.0, 8.0], "current_value": 6.0, "scene_diff": [{"exit_id": "E1", "width": 6.0}]},
+    {"name": "中部通道宽度", "type": "passage_width", "target_id": "P1", "unit": "m", "allowed_range": [2.0, 6.0], "current_value": 4.0, "scene_diff": [{"passage_id": "P1", "width": 4.0}]},
+    {"name": "展台中心横坐标", "type": "facility_center_x", "target_id": "F1", "unit": "m", "allowed_range": [7.0, 23.0], "current_value": 9.0, "scene_diff": [{"facility_id": "F1", "center": [9.0, 5.0]}]}
+  ]
+}

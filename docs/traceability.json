@@ -1,17 +1,127 @@
 {
   "project": "CrowdTurb",
-  "baseline": "V5 four-week draft; team review pending",
+  "baseline": "2026-11-25 user-approved STDDN direction; 2026-11-27 D/E integration pending team review",
   "items": [
-    {"requirement_id": "REQ-01", "owner": "A/E", "verification_ids": ["VT-01"], "status": "planned", "evidence": []},
-    {"requirement_id": "REQ-02", "owner": "C", "verification_ids": ["VT-02"], "status": "planned", "evidence": []},
-    {"requirement_id": "REQ-03", "owner": "B", "verification_ids": ["VT-03"], "status": "planned", "evidence": []},
-    {"requirement_id": "REQ-04", "owner": "D", "verification_ids": ["VT-04"], "status": "planned", "evidence": []},
-    {"requirement_id": "REQ-05", "owner": "D/A/C/E", "verification_ids": ["VT-05"], "status": "planned", "evidence": []},
-    {"requirement_id": "REQ-06", "owner": "E", "verification_ids": ["VT-06", "VT-08"], "status": "in_progress", "evidence": ["docs/evidence/2026-11-20-system-base.md", "docs/evidence/2026-11-26-e-first-review.md"]},
-    {"requirement_id": "REQ-07", "owner": "C", "verification_ids": ["VT-07", "VT-08"], "status": "planned", "evidence": []},
-    {"requirement_id": "NFR-01", "owner": "C/D/E", "verification_ids": ["VT-09"], "status": "planned", "evidence": []},
-    {"requirement_id": "NFR-02", "owner": "E", "verification_ids": ["VT-10"], "status": "in_progress", "evidence": ["docs/evidence/2026-11-20-system-base.md", "docs/evidence/2026-11-26-e-first-review.md"]},
-    {"requirement_id": "NFR-03", "owner": "E/B/C", "verification_ids": ["VT-11"], "status": "planned", "evidence": []},
-    {"requirement_id": "NFR-04", "owner": "B/D/E", "verification_ids": ["VT-12"], "status": "planned", "evidence": []}
+    {
+      "requirement_id": "REQ-01",
+      "owner": "A/E",
+      "verification_ids": [
+        "VT-01"
+      ],
+      "status": "in_progress",
+      "evidence": [
+        "docs/evidence/2026-11-27-DE-integration.md"
+      ]
+    },
+    {
+      "requirement_id": "REQ-02",
+      "owner": "C",
+      "verification_ids": [
+        "VT-02"
+      ],
+      "status": "planned",
+      "evidence": []
+    },
+    {
+      "requirement_id": "REQ-03",
+      "owner": "B",
+      "verification_ids": [
+        "VT-03"
+      ],
+      "status": "in_progress",
+      "evidence": [
+        "docs/evidence/2026-11-27-DE-integration.md"
+      ]
+    },
+    {
+      "requirement_id": "REQ-04",
+      "owner": "D",
+      "verification_ids": [
+        "VT-04"
+      ],
+      "status": "in_progress",
+      "evidence": [
+        "docs/evidence/2026-11-25-D-analysis-passage.md",
+        "docs/evidence/2026-11-25-D-sampling-comparison.md",
+        "docs/evidence/2026-11-27-DE-integration.md"
+      ]
+    },
+    {
+      "requirement_id": "REQ-05",
+      "owner": "D/A/C/E",
+      "verification_ids": [
+        "VT-05"
+      ],
+      "status": "in_progress",
+      "evidence": [
+        "docs/evidence/2026-11-25-D-analysis-passage.md",
+        "docs/evidence/2026-11-25-D-sampling-comparison.md",
+        "docs/evidence/2026-11-27-DE-integration.md"
+      ]
+    },
+    {
+      "requirement_id": "REQ-06",
+      "owner": "E",
+      "verification_ids": [
+        "VT-06",
+        "VT-08"
+      ],
+      "status": "in_progress",
+      "evidence": [
+        "docs/evidence/2026-11-20-system-base.md",
+        "docs/evidence/2026-11-26-e-first-review.md",
+        "docs/evidence/2026-11-27-DE-integration.md"
+      ]
+    },
+    {
+      "requirement_id": "REQ-07",
+      "owner": "C",
+      "verification_ids": [
+        "VT-07",
+        "VT-08"
+      ],
+      "status": "planned",
+      "evidence": []
+    },
+    {
+      "requirement_id": "NFR-01",
+      "owner": "C/D/E",
+      "verification_ids": [
+        "VT-09"
+      ],
+      "status": "planned",
+      "evidence": []
+    },
+    {
+      "requirement_id": "NFR-02",
+      "owner": "E",
+      "verification_ids": [
+        "VT-10"
+      ],
+      "status": "in_progress",
+      "evidence": [
+        "docs/evidence/2026-11-20-system-base.md",
+        "docs/evidence/2026-11-26-e-first-review.md",
+        "docs/evidence/2026-11-27-DE-integration.md"
+      ]
+    },
+    {
+      "requirement_id": "NFR-03",
+      "owner": "E/B/C",
+      "verification_ids": [
+        "VT-11"
+      ],
+      "status": "planned",
+      "evidence": []
+    },
+    {
+      "requirement_id": "NFR-04",
+      "owner": "B/D/E",
+      "verification_ids": [
+        "VT-12"
+      ],
+      "status": "planned",
+      "evidence": []
+    }
   ]
 }

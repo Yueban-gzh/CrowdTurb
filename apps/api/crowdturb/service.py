@@ -49,10 +49,13 @@ class AppService:
         fixtures: Path = FIXTURES,
         seed_demo: bool = False,
         team_fixtures: Path | None = None,
+        model_path: Path | None = None,
     ) -> None:
         self.store = Store(database_path)
         self.fixtures = fixtures
         self.team_fixtures = team_fixtures
+        self.model_path = model_path
+        self.preview_source = "stddn" if model_path else "mock"
         self.adapters = build_adapters(fixtures)
         self.executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="crowdturb-task")
         self._recover_interrupted_tasks()
@@ -119,17 +122,22 @@ class AppService:
             raise ApiError(503, "team_modules_unavailable", "请配置团队模块目录。")
         return initial_scene(self.team_fixtures)
 
-    def create_preview(self, scene: dict) -> dict:
+    def create_preview(self, scene: dict, parameter: dict | None = None) -> dict:
         if self.team_fixtures is None:
             raise ApiError(503, "team_modules_unavailable", "请配置团队模块目录。")
         if not isinstance(scene, dict):
             raise ApiError(400, "invalid_scene", "缺少编辑器场景。")
+        if parameter is not None and (
+            not isinstance(parameter, dict) or set(parameter) != {"type", "target_id"}
+            or not all(isinstance(value, str) and value for value in parameter.values())
+        ):
+            raise ApiError(400, "invalid_parameter", "候选参数需要参数类型和目标 ID。")
         meta = scene.get("meta") if isinstance(scene.get("meta"), dict) else {}
         now = utc_now()
         record = {
             "run_id": f"preview-{uuid.uuid4().hex}",
             "kind": "workbench",
-            "source": "mock",
+            "source": self.preview_source,
             "created_at": now,
             "updated_at": now,
             "status": "queued",
@@ -137,6 +145,7 @@ class AppService:
             "scene_name": meta.get("name") or "未命名布局",
             "scene_revision": meta.get("revision"),
             "views": [],
+            "parameter": parameter,
         }
         self.store.save_review_run(record, {"scene": scene, "views": {}})
         self.executor.submit(self._run_preview, record, scene)
@@ -146,13 +155,14 @@ class AppService:
         record = {**queued, "status": "running", "updated_at": utc_now()}
         self.store.update_review_run(record)
         try:
-            preview = run_preview(self.team_fixtures, scene)
+            preview = run_preview(self.team_fixtures, scene, self.model_path, record["parameter"])
             baseline = preview["views"]["baseline"]["trajectory"]
             completed = {
                 **record,
                 "status": "succeeded",
                 "updated_at": utc_now(),
                 "source": baseline["source"],
+                "model_sha256": baseline["model_sha256"],
                 "scene_id": baseline["scene_id"],
                 "scene_name": preview["scene"]["meta"]["name"],
                 "scene_revision": baseline["scene_revision"],
