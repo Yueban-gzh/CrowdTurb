@@ -46,10 +46,20 @@ try {
   const page = await browser.newPage({baseURL: address, viewport: {width: 1366, height: 900}});
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.route("**/api/workbench/scene", async (route) => {
+    const response = await route.fetch();
+    const data = await response.json();
+    const facility = data.scene.geometry.facilities[0];
+    facility.allowed_region = [[5, 3], [12, 3], [12, 7], [5, 7]];
+    const parameter = data.scene.variable_parameters.find((item) => item.type === "facility_center_x");
+    parameter.allowed_range = [20, 23];
+    await route.fulfill({response, json: data});
+  });
   await page.goto(address);
 
   const editor = page.frameLocator("#editor");
   await editor.locator("#mapName").getByText("单层展厅", {exact: true}).waitFor();
+  await editor.getByText("F1 横坐标评估范围已按当前移动区更新为 6.50–10.50 米。", {exact: true}).waitFor();
   const width = editor.locator('#exitBox [data-f="width"]');
   await width.press("ArrowUp");
   await width.press("Tab");
@@ -74,6 +84,9 @@ try {
   await frame.getByText("✓ 通过", {exact: true}).waitFor();
 
   const baselineURL = `/api/workbench/runs/${run.run_id}/views/baseline`;
+  const saved = await (await page.request.get(`/api/workbench/runs/${run.run_id}`)).json();
+  const adjusted = saved.scene.variable_parameters.find((item) => item.type === "facility_center_x");
+  assert.deepEqual(adjusted.allowed_range, [6.5, 10.5]);
   const manifest = await (await page.request.get(baselineURL)).json();
   const scene = await (await page.request.get(manifest.artifacts.scene)).json();
   assert.equal(scene.exits[0].width_m, 6.1);
