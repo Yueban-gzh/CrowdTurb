@@ -27,3 +27,32 @@ jobs:
         run: python tools/check_repository.py
       - name: Reject invalid integration payloads
         run: python -m unittest discover -s tests/contracts -v
+      - name: Run system base API tests
+        run: python -m unittest discover -s tests/system -v
+
+  workbench-integration:
+    name: workbench-integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: 'requirements-*.txt'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install application dependencies
+        run: python -m pip install -r requirements-workbench.txt
+      - name: Prepare pinned team snapshots and viewer
+        run: python tools/start_workbench.py --prepare-only >> "$GITHUB_ENV"
+      - name: Run task and artifact integration tests
+        run: python -m unittest discover -s tests/system -v
+      - name: Install the Chromium test runner
+        run: |
+          npm install --no-save --no-package-lock playwright@1.65.1
+          npx playwright install --with-deps chromium
+      - name: Exercise the integrated browser workflow
+        run: node tests/e2e/workbench.mjs
