@@ -1,0 +1,139 @@
+{
+  "schema_version": "0.2.0",
+  "result_id": "mock-trajectory-001",
+  "scene_id": "mock-trajectory-hall",
+  "scene_revision": 1,
+  "input_hash": "45f09b1779d12e1cd9b9f03d79480cf52b9b2dcc082bc8a67e3ca54807f44ba1",
+  "initial_state_hash": "ed9b23c786461f9a6a0984e6ff10de72af36b73ed656c20b65847522e2d4edef",
+  "source": "mock",
+  "population_mode": "fixed_closed",
+  "model_sha256": null,
+  "reproducibility_record": null,
+  "simulation_settings": {
+    "dt_s": 0.08,
+    "seed": 0,
+    "integrator": "hand-authored-not-integrated",
+    "planner_version": "none-mock",
+    "collision_version": "none-mock"
+  },
+  "grid": {
+    "nx": 3,
+    "ny": 2,
+    "dx": 1.0,
+    "dy": 1.0,
+    "origin": [
+      0.0,
+      0.0
+    ]
+  },
+  "walkable": [
+    [
+      true,
+      true,
+      true
+    ],
+    [
+      true,
+      false,
+      true
+    ]
+  ],
+  "exit_ids": [
+    "E1"
+  ],
+  "frames": [
+    {
+      "time_s": 0.0,
+      "agents": [
+        {
+          "agent_id": "a",
+          "position_m": [
+            0.25,
+            0.25
+          ],
+          "velocity_mps": [
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "agent_id": "b",
+          "position_m": [
+            0.75,
+            0.25
+          ],
+          "velocity_mps": [
+            3.0,
+            0.0
+          ]
+        },
+        {
+          "agent_id": "c",
+          "position_m": [
+            2.5,
+            0.5
+          ],
+          "velocity_mps": [
+            0.0,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "time_s": 1.5,
+      "agents": [
+        {
+          "agent_id": "b",
+          "position_m": [
+            1.5,
+            0.5
+          ],
+          "velocity_mps": [
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "agent_id": "c",
+          "position_m": [
+            2.5,
+            1.5
+          ],
+          "velocity_mps": [
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "time_s": 4.0,
+      "agents": [
+        {
+          "agent_id": "c",
+          "position_m": [
+            2.5,
+            1.5
+          ],
+          "velocity_mps": [
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    }
+  ],
+  "exit_events": [
+    {
+      "agent_id": "a",
+      "exit_id": "E1",
+      "time_s": 1.0
+    },
+    {
+      "agent_id": "b",
+      "exit_id": "E1",
+      "time_s": 3.0
+    }
+  ]
+}

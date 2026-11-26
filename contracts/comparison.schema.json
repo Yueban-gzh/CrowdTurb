@@ -1,0 +1,401 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CrowdTurb recorded-run comparison proposal 0.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source",
+    "scene_id",
+    "baseline_result_id",
+    "baseline_input_hash",
+    "baseline_metrics",
+    "time_range_s",
+    "threshold",
+    "density_estimator",
+    "policy",
+    "ranking_rule",
+    "recommendation",
+    "recommendation_scope",
+    "candidates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "source": {
+      "enum": [
+        "mock",
+        "stddn"
+      ]
+    },
+    "scene_id": {
+      "type": "string"
+    },
+    "baseline_result_id": {
+      "type": "string"
+    },
+    "baseline_input_hash": {
+      "$ref": "#/$defs/hash"
+    },
+    "baseline_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "remaining_at_end",
+        "congestion_area_time",
+        "exited_people"
+      ],
+      "properties": {
+        "remaining_at_end": {
+          "$ref": "#/$defs/metric"
+        },
+        "congestion_area_time": {
+          "$ref": "#/$defs/metric"
+        },
+        "exited_people": {
+          "$ref": "#/$defs/metric"
+        }
+      }
+    },
+    "time_range_s": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "threshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit",
+        "comparison",
+        "basis"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit": {
+          "const": "person/m2"
+        },
+        "comparison": {
+          "const": ">"
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "density_estimator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "bandwidth_m",
+        "support_sigma",
+        "boundary",
+        "version"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "cell",
+            "gaussian_visible"
+          ]
+        },
+        "bandwidth_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "support_sigma": {
+          "enum": [
+            null,
+            3.0
+          ]
+        },
+        "boundary": {
+          "enum": [
+            "whole_walkable_cell",
+            "visible_walkable_centers_per_person_normalization"
+          ]
+        },
+        "version": {
+          "const": "1"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "cell"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "bandwidth_m": {
+                "type": "null"
+              },
+              "support_sigma": {
+                "type": "null"
+              },
+              "boundary": {
+                "const": "whole_walkable_cell"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "bandwidth_m": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "support_sigma": {
+                "const": 3.0
+              },
+              "boundary": {
+                "const": "visible_walkable_centers_per_person_normalization"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "limits",
+        "remaining_tolerance",
+        "congestion_tolerance"
+      ]
+    },
+    "ranking_rule": {
+      "type": "string"
+    },
+    "recommendation": {
+      "type": "string"
+    },
+    "recommendation_scope": {
+      "type": "string"
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidate_id",
+          "changes",
+          "input_hash",
+          "source",
+          "status",
+          "reasons",
+          "costs",
+          "duplicate_of",
+          "metrics",
+          "deltas",
+          "improvement_percent",
+          "tradeoff",
+          "rank"
+        ],
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "input_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "enum": [
+              "mock",
+              "stddn"
+            ]
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "invalid",
+              "over_budget",
+              "duplicate",
+              "failed",
+              "incomparable",
+              "tradeoff",
+              "worsened",
+              "improved",
+              "unchanged"
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "costs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "exit_expansion_m",
+              "passage_added_area_m2",
+              "facility_move_m",
+              "facility_rotation_deg"
+            ],
+            "properties": {
+              "exit_expansion_m": {
+                "type": "number",
+                "minimum": 0
+              },
+              "passage_added_area_m2": {
+                "type": "number",
+                "minimum": 0
+              },
+              "facility_move_m": {
+                "type": "number",
+                "minimum": 0
+              },
+              "facility_rotation_deg": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "duplicate_of": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "remaining_at_end",
+                  "congestion_area_time",
+                  "exited_people"
+                ],
+                "properties": {
+                  "remaining_at_end": {
+                    "$ref": "#/$defs/metric"
+                  },
+                  "congestion_area_time": {
+                    "$ref": "#/$defs/metric"
+                  },
+                  "exited_people": {
+                    "$ref": "#/$defs/metric"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deltas": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "improvement_percent": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "tradeoff": {
+            "type": "boolean"
+          },
+          "rank": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "result_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit",
+        "definition",
+        "source",
+        "status"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unit": {
+          "enum": [
+            "person",
+            "m2*s"
+          ]
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "enum": [
+            "mock",
+            "stddn"
+          ]
+        },
+        "status": {
+          "const": "normal"
+        }
+      }
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "vector": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 2
+    }
+  }
+}

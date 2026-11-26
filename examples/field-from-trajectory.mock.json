@@ -1,0 +1,186 @@
+{
+  "schema_version": "0.3.0",
+  "scene_id": "mock-trajectory-hall",
+  "scene_revision": 1,
+  "input_hash": "45f09b1779d12e1cd9b9f03d79480cf52b9b2dcc082bc8a67e3ca54807f44ba1",
+  "source": "mock",
+  "derived_from": "mock-trajectory-001",
+  "initial_state_hash": "ed9b23c786461f9a6a0984e6ff10de72af36b73ed656c20b65847522e2d4edef",
+  "model_sha256": null,
+  "simulation_settings": {
+    "dt_s": 0.08,
+    "seed": 0,
+    "integrator": "hand-authored-not-integrated",
+    "planner_version": "none-mock",
+    "collision_version": "none-mock"
+  },
+  "reproducibility_record": null,
+  "density_estimator": {
+    "method": "cell",
+    "bandwidth_m": null,
+    "support_sigma": null,
+    "boundary": "whole_walkable_cell",
+    "version": "1"
+  },
+  "result_id": "mock-trajectory-001-field",
+  "grid": {
+    "nx": 3,
+    "ny": 2,
+    "dx": 1.0,
+    "dy": 1.0,
+    "origin": [
+      0.0,
+      0.0
+    ]
+  },
+  "walkable": [
+    [
+      true,
+      true,
+      true
+    ],
+    [
+      true,
+      false,
+      true
+    ]
+  ],
+  "frames": [
+    {
+      "time_s": 0.0,
+      "density": [
+        [
+          2.0,
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "velocity": [
+        [
+          [
+            2.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    {
+      "time_s": 1.5,
+      "density": [
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "velocity": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ],
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    {
+      "time_s": 4.0,
+      "density": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "velocity": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ],
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    }
+  ],
+  "method": "mass per full walkable cell area; mass-weighted vector mean; empty=zero"
+}

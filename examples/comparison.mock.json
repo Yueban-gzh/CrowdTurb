@@ -1,0 +1,1418 @@
+{
+  "schema_version": "0.1.0",
+  "source": "mock",
+  "scene_id": "mock-workflow-hall",
+  "baseline_result_id": "mock-demo-baseline",
+  "baseline_input_hash": "18ec76c91e216a57519f705f3d3fc07cbd70aa090bd44bacb53471defa202c2c",
+  "baseline_metrics": {
+    "remaining_at_end": {
+      "value": 1,
+      "unit": "person",
+      "definition": "Active agents at the final recorded time; horizon is explicit",
+      "source": "mock",
+      "status": "normal"
+    },
+    "congestion_area_time": {
+      "value": 0.5,
+      "unit": "m2*s",
+      "definition": "Area above threshold integrated with previous-sample hold",
+      "source": "mock",
+      "status": "normal"
+    },
+    "exited_people": {
+      "value": 1,
+      "unit": "person",
+      "definition": "Unique explicit exit events in the recorded interval",
+      "source": "mock",
+      "status": "normal"
+    }
+  },
+  "time_range_s": [
+    0,
+    2
+  ],
+  "threshold": {
+    "value": 1.5,
+    "unit": "person/m2",
+    "comparison": ">",
+    "basis": "Synthetic demonstration threshold; not a safety criterion"
+  },
+  "density_estimator": {
+    "method": "cell",
+    "bandwidth_m": null,
+    "support_sigma": null,
+    "boundary": "whole_walkable_cell",
+    "version": "1"
+  },
+  "policy": {
+    "limits": {
+      "exit_expansion_m": 1,
+      "passage_added_area_m2": 8,
+      "facility_move_m": 14,
+      "facility_rotation_deg": 0
+    },
+    "remaining_tolerance": 0,
+    "congestion_tolerance": 1e-09
+  },
+  "ranking_rule": "Only comparable, within-budget candidates that improve at least one effectiveness metric without worsening the other; remaining people then congestion; ID breaks exact ties",
+  "recommendation": "D0001",
+  "recommendation_scope": "Supplied recorded runs only; baseline retained when no eligible improvement. No global optimality or real-world safety claim.",
+  "candidates": [
+    {
+      "candidate_id": "D0001",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 4.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 2.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            7.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "55810a08addc887bcc1675627dfa87cb67a620c899c40f58adf5dc3c421b498d",
+      "source": "mock",
+      "status": "improved",
+      "reasons": [],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 2.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 0,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.25,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 2,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": -1,
+        "congestion_area_time": -0.25
+      },
+      "improvement_percent": {
+        "remaining_at_end": 100.0,
+        "congestion_area_time": 50.0
+      },
+      "tradeoff": false,
+      "rank": 1,
+      "result_id": "mock-demo-D0001"
+    },
+    {
+      "candidate_id": "D0002",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 4.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 2.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            9.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "28e554bc57ead6ceef60f994958f5aa6ab1afaebeecad0c7391b057e2451d6c0",
+      "source": "mock",
+      "status": "unchanged",
+      "reasons": [],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 0.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 1,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.5,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 1,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": 0,
+        "congestion_area_time": 0.0
+      },
+      "improvement_percent": {
+        "remaining_at_end": 0.0,
+        "congestion_area_time": -0.0
+      },
+      "tradeoff": false,
+      "rank": null,
+      "result_id": "mock-demo-D0002"
+    },
+    {
+      "candidate_id": "D0003",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 4.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 2.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            23.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "51b336da575182b7145fc05f324781e867678d968574506036c9868fac3ef327",
+      "source": "mock",
+      "status": "worsened",
+      "reasons": [],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 14.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 2,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.75,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 0,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": 1,
+        "congestion_area_time": 0.25
+      },
+      "improvement_percent": {
+        "remaining_at_end": -100.0,
+        "congestion_area_time": -50.0
+      },
+      "tradeoff": false,
+      "rank": null,
+      "result_id": "mock-demo-D0003"
+    },
+    {
+      "candidate_id": "D0004",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 4.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 4.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            7.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "d3837542d78b52f4e68613c6c4d6fed68e915c53bebff6280b4b316eda3ff3a6",
+      "source": "mock",
+      "status": "tradeoff",
+      "reasons": [
+        "Some effectiveness metrics improve while others worsen; human choice required"
+      ],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 2.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 0,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.75,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 2,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": -1,
+        "congestion_area_time": 0.25
+      },
+      "improvement_percent": {
+        "remaining_at_end": 100.0,
+        "congestion_area_time": -50.0
+      },
+      "tradeoff": true,
+      "rank": null,
+      "result_id": "mock-demo-D0004"
+    },
+    {
+      "candidate_id": "D0005",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 4.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 4.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            9.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "fe26a3183c0e581590e2afd654cc6fe74e5dacbb3e4f9aec2d78a4f83d2086d0",
+      "source": "mock",
+      "status": "failed",
+      "reasons": [
+        "Synthetic failure, no simulator called"
+      ],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 0.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0006",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 4.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 4.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            23.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "4c8114bfbbad80d43b3ed2ccab8b67a9937ddfc16b58024993b31d869f8ceb3b",
+      "source": "mock",
+      "status": "pending",
+      "reasons": [
+        "No complete trajectory supplied"
+      ],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 14.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0007",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 4.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 6.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            7.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "f00305030fdb244b7b18e5c3c274d6bf64609bbc8cc7108a00442b4f9f1b11f7",
+      "source": "mock",
+      "status": "incomparable",
+      "reasons": [
+        "Different simulation_settings"
+      ],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 8.0,
+        "facility_move_m": 2.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0008",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 4.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 6.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            9.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "4de9514d085206e60aa172ef698b381ae75476241269a077ddc7ac61559172d5",
+      "source": "mock",
+      "status": "improved",
+      "reasons": [],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 8.0,
+        "facility_move_m": 0.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 0,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.25,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 2,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": -1,
+        "congestion_area_time": -0.25
+      },
+      "improvement_percent": {
+        "remaining_at_end": 100.0,
+        "congestion_area_time": 50.0
+      },
+      "tradeoff": false,
+      "rank": 2,
+      "result_id": "mock-demo-D0008"
+    },
+    {
+      "candidate_id": "D0009",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 4.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 6.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            23.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "f01f371b14944e88c3996ad33e6b4dc5cafd7cff82a49c21bc718f0cd8907a11",
+      "source": "mock",
+      "status": "unchanged",
+      "reasons": [],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 8.0,
+        "facility_move_m": 14.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 1,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.5,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 1,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": 0,
+        "congestion_area_time": 0.0
+      },
+      "improvement_percent": {
+        "remaining_at_end": 0.0,
+        "congestion_area_time": -0.0
+      },
+      "tradeoff": false,
+      "rank": null,
+      "result_id": "mock-demo-D0009"
+    },
+    {
+      "candidate_id": "D0010",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 6.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 2.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            7.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "b078ec3386c7f0c1087c6971a38bf8ed021b8e139b25422cd369b6bae8b87eff",
+      "source": "mock",
+      "status": "worsened",
+      "reasons": [],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 2.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 2,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.75,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 0,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": 1,
+        "congestion_area_time": 0.25
+      },
+      "improvement_percent": {
+        "remaining_at_end": -100.0,
+        "congestion_area_time": -50.0
+      },
+      "tradeoff": false,
+      "rank": null,
+      "result_id": "mock-demo-D0010"
+    },
+    {
+      "candidate_id": "D0011",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 6.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 2.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            9.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "65c6c3d5363bf0037c3a835f47a05045866f2cf5bc14b2fd7568d619c37fda56",
+      "source": "mock",
+      "status": "tradeoff",
+      "reasons": [
+        "Some effectiveness metrics improve while others worsen; human choice required"
+      ],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 0.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 0,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.75,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 2,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": -1,
+        "congestion_area_time": 0.25
+      },
+      "improvement_percent": {
+        "remaining_at_end": 100.0,
+        "congestion_area_time": -50.0
+      },
+      "tradeoff": true,
+      "rank": null,
+      "result_id": "mock-demo-D0011"
+    },
+    {
+      "candidate_id": "D0012",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 6.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 2.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            23.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "86593429e62fce098ff2efb99c24e34bdca602a7024f01ebcfbd8b2bfc2a9ef3",
+      "source": "mock",
+      "status": "failed",
+      "reasons": [
+        "Synthetic failure, no simulator called"
+      ],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 14.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0013",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 6.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 4.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            7.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "6e08bff1754f67270162c652872205b9da3968ce85d4181f87faea062fad0185",
+      "source": "mock",
+      "status": "pending",
+      "reasons": [
+        "No complete trajectory supplied"
+      ],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 2.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0014",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 6.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 4.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            9.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "18ec76c91e216a57519f705f3d3fc07cbd70aa090bd44bacb53471defa202c2c",
+      "source": "mock",
+      "status": "duplicate",
+      "reasons": [
+        "Equivalent solver input; no independent improvement claim"
+      ],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 0.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": "baseline",
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0015",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 6.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 4.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            23.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "2096d910582bb22476464622b463c32afb60a15989c2fe4383ede6bde64b8870",
+      "source": "mock",
+      "status": "improved",
+      "reasons": [],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 14.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 0,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.25,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 2,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": -1,
+        "congestion_area_time": -0.25
+      },
+      "improvement_percent": {
+        "remaining_at_end": 100.0,
+        "congestion_area_time": 50.0
+      },
+      "tradeoff": false,
+      "rank": 3,
+      "result_id": "mock-demo-D0015"
+    },
+    {
+      "candidate_id": "D0016",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 6.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 6.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            7.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "b3d0984d9e4ba2feb95a3368097e9d0029e0b8633843c5bdd43e60487df9e490",
+      "source": "mock",
+      "status": "unchanged",
+      "reasons": [],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 8.0,
+        "facility_move_m": 2.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 1,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.5,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 1,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": 0,
+        "congestion_area_time": 0.0
+      },
+      "improvement_percent": {
+        "remaining_at_end": 0.0,
+        "congestion_area_time": -0.0
+      },
+      "tradeoff": false,
+      "rank": null,
+      "result_id": "mock-demo-D0016"
+    },
+    {
+      "candidate_id": "D0017",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 6.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 6.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            9.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "a58e42deeaa169206d55bc85e46311d892dd896a4af49e52e9a59c9c8672d98f",
+      "source": "mock",
+      "status": "worsened",
+      "reasons": [],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 8.0,
+        "facility_move_m": 0.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 2,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.75,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 0,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": 1,
+        "congestion_area_time": 0.25
+      },
+      "improvement_percent": {
+        "remaining_at_end": -100.0,
+        "congestion_area_time": -50.0
+      },
+      "tradeoff": false,
+      "rank": null,
+      "result_id": "mock-demo-D0017"
+    },
+    {
+      "candidate_id": "D0018",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 6.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 6.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            23.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "550baa047ad216f84cdae8526c3af5b4ce851d745ab25fe7fd70b785b8a3865d",
+      "source": "mock",
+      "status": "tradeoff",
+      "reasons": [
+        "Some effectiveness metrics improve while others worsen; human choice required"
+      ],
+      "costs": {
+        "exit_expansion_m": 0.0,
+        "passage_added_area_m2": 8.0,
+        "facility_move_m": 14.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": {
+        "remaining_at_end": {
+          "value": 0,
+          "unit": "person",
+          "definition": "Active agents at the final recorded time; horizon is explicit",
+          "source": "mock",
+          "status": "normal"
+        },
+        "congestion_area_time": {
+          "value": 0.75,
+          "unit": "m2*s",
+          "definition": "Area above threshold integrated with previous-sample hold",
+          "source": "mock",
+          "status": "normal"
+        },
+        "exited_people": {
+          "value": 2,
+          "unit": "person",
+          "definition": "Unique explicit exit events in the recorded interval",
+          "source": "mock",
+          "status": "normal"
+        }
+      },
+      "deltas": {
+        "remaining_at_end": -1,
+        "congestion_area_time": 0.25
+      },
+      "improvement_percent": {
+        "remaining_at_end": 100.0,
+        "congestion_area_time": -50.0
+      },
+      "tradeoff": true,
+      "rank": null,
+      "result_id": "mock-demo-D0018"
+    },
+    {
+      "candidate_id": "D0019",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 8.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 2.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            7.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "482f0c09f778d6411873bdd40e997c256fe1732ccc5ca6de5f45a23ba81c06af",
+      "source": "mock",
+      "status": "over_budget",
+      "reasons": [
+        "Modification budget exceeded: exit_expansion_m"
+      ],
+      "costs": {
+        "exit_expansion_m": 2.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 2.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0020",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 8.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 2.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            9.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "dacf5821d9daeff6b3c35ab0f389c7fa1c3df0b9be8e1df4da99eb62c9a6ebec",
+      "source": "mock",
+      "status": "over_budget",
+      "reasons": [
+        "Modification budget exceeded: exit_expansion_m"
+      ],
+      "costs": {
+        "exit_expansion_m": 2.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 0.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0021",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 8.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 2.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            23.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "683f5c01d5a78656d2503a8e072930dc399b2bee3417a2d2dc7f796601aa5d41",
+      "source": "mock",
+      "status": "over_budget",
+      "reasons": [
+        "Modification budget exceeded: exit_expansion_m"
+      ],
+      "costs": {
+        "exit_expansion_m": 2.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 14.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0022",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 8.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 4.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            7.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "2170a8bf0cf1c1c558d8cbb4bd04895a219fec82a49a7cdad46b632bd7f1125e",
+      "source": "mock",
+      "status": "over_budget",
+      "reasons": [
+        "Modification budget exceeded: exit_expansion_m"
+      ],
+      "costs": {
+        "exit_expansion_m": 2.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 2.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0023",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 8.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 4.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            9.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "855a73f3d5a4dde76a6630feeb830ff83bbdfc101c106f0e8498f3ce4a0aae79",
+      "source": "mock",
+      "status": "over_budget",
+      "reasons": [
+        "Modification budget exceeded: exit_expansion_m"
+      ],
+      "costs": {
+        "exit_expansion_m": 2.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 0.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0024",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 8.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 4.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            23.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "ab9f379ae292f7ab6ee992cdffb473a3bf018de25a0587ac92a542aa9ffc7a01",
+      "source": "mock",
+      "status": "over_budget",
+      "reasons": [
+        "Modification budget exceeded: exit_expansion_m"
+      ],
+      "costs": {
+        "exit_expansion_m": 2.0,
+        "passage_added_area_m2": 0.0,
+        "facility_move_m": 14.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0025",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 8.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 6.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            7.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "863fff2dbdb066baa9e1c572ed9707769192fd92cd3b10d246c7d44eba38369d",
+      "source": "mock",
+      "status": "over_budget",
+      "reasons": [
+        "Modification budget exceeded: exit_expansion_m"
+      ],
+      "costs": {
+        "exit_expansion_m": 2.0,
+        "passage_added_area_m2": 8.0,
+        "facility_move_m": 2.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0026",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 8.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 6.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            9.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "00499c049656fa74a88c36400ac15f25915d4b9e3e18c6a700d7263ee417f3f5",
+      "source": "mock",
+      "status": "over_budget",
+      "reasons": [
+        "Modification budget exceeded: exit_expansion_m"
+      ],
+      "costs": {
+        "exit_expansion_m": 2.0,
+        "passage_added_area_m2": 8.0,
+        "facility_move_m": 0.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    },
+    {
+      "candidate_id": "D0027",
+      "changes": [
+        {
+          "exit_id": "E1",
+          "width": 8.0
+        },
+        {
+          "passage_id": "P1",
+          "width": 6.0
+        },
+        {
+          "facility_id": "F1",
+          "center": [
+            23.0,
+            5.0
+          ]
+        }
+      ],
+      "input_hash": "a2adf58f925538ec029b8704d66dafbb6a6c0d8ca2eed8f2567b1b5ad314ba74",
+      "source": "mock",
+      "status": "over_budget",
+      "reasons": [
+        "Modification budget exceeded: exit_expansion_m"
+      ],
+      "costs": {
+        "exit_expansion_m": 2.0,
+        "passage_added_area_m2": 8.0,
+        "facility_move_m": 14.0,
+        "facility_rotation_deg": 0.0
+      },
+      "duplicate_of": null,
+      "metrics": null,
+      "deltas": null,
+      "improvement_percent": null,
+      "tradeoff": false,
+      "rank": null
+    }
+  ]
+}
