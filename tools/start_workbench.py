@@ -66,10 +66,16 @@ def main():
     parser.add_argument("--port", type=int, default=8770)
     parser.add_argument("--db", type=Path, default=ROOT / "data/workbench.sqlite3")
     parser.add_argument("--native-viewer", type=Path, help="B checkout with native workbench API support")
+    parser.add_argument("--onnx-model", type=Path, help="Enable single-floor STDDN with a local ONNX file")
     parser.add_argument("--prepare-only", action="store_true", help="Prepare assets and print environment assignments")
     args = parser.parse_args()
     try:
         import numpy
+
+        if args.onnx_model:
+            if not args.onnx_model.is_file():
+                raise ValueError(f"找不到本地 ONNX 文件：{args.onnx_model}")
+            import onnxruntime
 
         team = snapshot(D_REVISION, "tools/run_analysis.py")
         viewer = args.native_viewer.resolve() if args.native_viewer else prepare_viewer(
@@ -78,7 +84,8 @@ def main():
         if not (viewer / "apps/web/prototype/index.html").is_file():
             raise ValueError(f"B 页面缺失：{viewer}")
     except ImportError as error:
-        parser.exit(1, f"{error}。请先安装 requirements-workbench.txt 中的依赖。\n")
+        requirements = "requirements-stddn.txt" if args.onnx_model else "requirements-workbench.txt"
+        parser.exit(1, f"{error}。请先安装 {requirements} 中的依赖。\n")
     except (OSError, ValueError) as error:
         parser.exit(1, f"工作台准备失败：{error}\n")
     if args.prepare_only:
@@ -89,6 +96,8 @@ def main():
         sys.executable, "-m", "apps.api.crowdturb", "--port", str(args.port),
         "--db", str(args.db.resolve()), "--team-fixtures", str(team), "--viewer-root", str(viewer),
     ]
+    if args.onnx_model:
+        argv += ["--onnx-model", str(args.onnx_model.resolve())]
     try:
         return subprocess.run(argv, cwd=ROOT, check=False).returncode
     except KeyboardInterrupt:

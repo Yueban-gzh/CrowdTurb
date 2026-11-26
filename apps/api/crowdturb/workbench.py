@@ -16,7 +16,7 @@ def initial_scene(team_root: Path) -> dict:
     scene = load_json(team_root / "apps/web/scene-config/scenes/passage_optimization_example.json")
     scene["version"] = "0.2"
     scene["meta"]["name"] = "单层展厅"
-    scene["meta"]["notes"] = "出口与展台编辑、栅格转换和 Mock 人流预演。"
+    scene["meta"]["notes"] = "出口与展台编辑、栅格转换和单层人流评估。"
     scene["geometry"].pop("passages")
     scene["variable_parameters"] = [
         variable for variable in scene["variable_parameters"] if variable["type"] != "passage_width"
@@ -25,14 +25,18 @@ def initial_scene(team_root: Path) -> dict:
     return scene
 
 
-def run_preview(team_root: Path, scene: dict) -> dict:
+def run_preview(team_root: Path, scene: dict, model_path: Path | None = None, parameter: dict | None = None) -> dict:
+    command = [sys.executable, "-m", "apps.api.crowdturb.workbench", str(team_root.resolve())]
+    if model_path:
+        command.append(str(model_path.resolve()))
+    request = scene if parameter is None else {"scene": scene, "parameter": parameter}
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "apps.api.crowdturb.workbench", str(team_root.resolve())],
-            input=json.dumps(scene, allow_nan=False),
+            command,
+            input=json.dumps(request, allow_nan=False),
             capture_output=True,
             encoding="utf-8",
-            timeout=35,
+            timeout=90 if model_path else 35,
             check=False,
         )
     except subprocess.TimeoutExpired as error:
@@ -42,7 +46,7 @@ def run_preview(team_root: Path, scene: dict) -> dict:
     return json.loads(result.stdout)
 
 
-def build_preview(team_root: Path, scene: dict, simulate=simulate_mock) -> dict:
+def build_preview(team_root: Path, scene: dict, simulate=simulate_mock, parameter=None) -> dict:
     import tempfile
 
     sys.path[:0] = [
@@ -50,10 +54,10 @@ def build_preview(team_root: Path, scene: dict, simulate=simulate_mock) -> dict:
         str(team_root / "packages/analysis"),
     ]
     from crowdturb_analysis.core import analyze
-    from crowdturb_analysis.comparison import compare_candidates
+    from crowdturb_analysis.comparison import compare_candidates, modification_costs
     from crowdturb_analysis.sampling import auto_candidates
     from layout_eval import apply_layout
-    from scene_io import load_scene, rasterize, validate
+    from scene_io import load_scene, rasterize, validate, variable_parameters
 
     with tempfile.TemporaryDirectory() as directory:
         source = Path(directory) / "scene.json"
@@ -78,10 +82,16 @@ def build_preview(team_root: Path, scene: dict, simulate=simulate_mock) -> dict:
     if not all(math.isfinite(value) and value > 0 for value in (horizon, step)):
         raise ValueError("评估时长和步长必须为正的有限数值。")
     agents = initial_agents(raster, sum(zone["count"] for zone in scene["crowd"]["zones"]))
+    declared = variable_parameters(scene)
+    if parameter is not None and not any(
+        all(item[key] == value for key, value in parameter.items()) for item in declared
+    ):
+        raise ValueError("所选参数已不在当前场景的可调范围配置中。")
+    reference_routes = {}
 
     def trajectory(layout, layout_raster, result_id, variant=0):
         resolution = float(layout_raster["res"])
-        return simulate(SimulationInput(
+        request = SimulationInput(
             result_id=result_id,
             scene_id="workbench-layout",
             revision=layout["meta"].get("revision", 1),
@@ -97,27 +107,45 @@ def build_preview(team_root: Path, scene: dict, simulate=simulate_mock) -> dict:
             horizon_s=horizon,
             step_s=step,
             variant=variant,
-        ))
+        )
+        if hasattr(simulate, "simulate_with_reference"):
+            result, route = simulate.simulate_with_reference(request)
+            if route:
+                reference_routes[result_id] = route
+            return result
+        return simulate(request)
 
-    baseline = trajectory(scene, raster, "baseline")
-    report = auto_candidates(scene, points_per_parameter=3, max_candidates=27) if scene.get("variable_parameters") else {"candidates": []}
-    runs = {}
-    layouts = {}
-    for index, candidate in enumerate(report["candidates"], start=1):
-        if candidate["solve_required"]:
-            candidate_id = candidate["candidate_id"]
-            layout = apply_layout(scene, candidate["changes"])
-            layouts[candidate_id] = layout
-            try:
-                runs[candidate_id] = trajectory(layout, rasterize(layout), candidate_id, index)
-            except (ValueError, ValidationError) as error:
-                runs[candidate_id] = {"status": "failed", "reason": str(error)}
     policy = {
         "limits": {"exit_expansion_m": 1, "passage_added_area_m2": 8,
                    "facility_move_m": 14, "facility_rotation_deg": 0},
         "remaining_tolerance": 0,
         "congestion_tolerance": 1e-9,
     }
+    baseline = trajectory(scene, raster, "baseline")
+    real_run = baseline["source"] == "stddn"
+    bindings = [parameter] if parameter is not None else None
+    if bindings is None and real_run and declared:
+        selected = next((row for row in declared if row["type"] == "exit_width"), declared[0])
+        bindings = [{key: selected[key] for key in ("type", "target_id")}]
+    report = auto_candidates(scene, bindings, points_per_parameter=3, max_candidates=27) if declared else {"candidates": []}
+    runs = {}
+    layouts = {}
+    for index, candidate in enumerate(report["candidates"], start=1):
+        if not candidate["solve_required"]:
+            continue
+        if real_run and any(cost > policy["limits"][key] + 1e-9
+                            for key, cost in modification_costs(candidate).items()):
+            continue
+        candidate_id = candidate["candidate_id"]
+        layout = apply_layout(scene, candidate["changes"])
+        layouts[candidate_id] = layout
+        try:
+            runs[candidate_id] = trajectory(layout, rasterize(layout), candidate_id, index)
+        except (ValueError, ValidationError) as error:
+            runs[candidate_id] = {"status": "failed", "reason": str(error)}
+        else:
+            if real_run:
+                break
     threshold = scene["params"].get("jam_density", 1.5)
     basis = "User scene parameter for integration; not a safety criterion"
     comparison = compare_candidates(scene, report, baseline, runs, policy, threshold, basis)
@@ -147,10 +175,19 @@ def build_preview(team_root: Path, scene: dict, simulate=simulate_mock) -> dict:
         }
         threshold = comparison["threshold"]
         field, analysis = analyze(trajectory, threshold["value"], threshold["basis"])
-        return {"scene": bundle, "trajectory": trajectory, "field": field, "analysis": analysis}
+        view = {"scene": bundle, "trajectory": trajectory, "field": field, "analysis": analysis}
+        route = reference_routes.get(trajectory["result_id"])
+        if route:
+            view["route"] = route
+        return view
 
     views = {"baseline": artifacts(scene, baseline)}
-    if recommendation in runs:
+    if real_run or parameter is not None:
+        for row in comparison["candidates"]:
+            candidate_id = row["candidate_id"]
+            if row.get("result_id"):
+                views[candidate_id] = artifacts(layouts[candidate_id], runs[candidate_id])
+    elif recommendation in runs:
         views[recommendation] = artifacts(layouts[recommendation], runs[recommendation])
     return {"scene": scene, "views": views, "comparison": comparison, "problems": problems}
 
@@ -158,8 +195,16 @@ def build_preview(team_root: Path, scene: dict, simulate=simulate_mock) -> dict:
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
     try:
-        scene = json.loads(sys.stdin.buffer.read().decode("utf-8"))
-        print(json.dumps(build_preview(Path(sys.argv[1]), scene), ensure_ascii=False, allow_nan=False))
+        request = json.loads(sys.stdin.buffer.read().decode("utf-8"))
+        # A running workbench from before parameter selection sends the scene directly.
+        scene = request.get("scene", request)
+        simulation = simulate_mock
+        if len(sys.argv) > 2:
+            from .trajectory_onnx import STDDN
+
+            simulation = STDDN(Path(sys.argv[2]))
+        preview = build_preview(Path(sys.argv[1]), scene, simulation, request.get("parameter"))
+        print(json.dumps(preview, ensure_ascii=False, allow_nan=False))
     except (ImportError, OSError, ValueError, ValidationError, KeyError, TypeError) as error:
         print(str(error))
         raise SystemExit(1)
