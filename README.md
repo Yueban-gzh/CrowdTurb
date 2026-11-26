@@ -4,7 +4,7 @@
 
 四周内跑通 **配置 → PDE 计算 → 3D 展示 → 拥堵分析 → 布局优化 → 同条件对比**。五名成员各自负责一个模块，通过共同的数据契约集成。
 
-**当前状态：仓库初始化。** 已有工程文档、接口草案、Mock 数据和仓库检查；尚无可运行的 Web 产品、PDE 求解器或 FNO 模型。Mock 数据只用于联调。
+**当前状态：W1 系统底座可运行，待团队评审。** 已有统一 Web 入口、项目 / 场景版本持久化、任务状态机、Mock 任务成功与失败链路，以及给 A-D 的模块插槽。尚无 PDE 求解器、FNO 模型、3D 可视化、指标或布局优化；Mock 数据只用于联调。
 
 ## 新成员从这里开始
 
@@ -12,7 +12,21 @@
 2. 阅读 [分工与四周计划](docs/plan.md)，在组会上将 A–E 对应到实际成员。
 3. 阅读 [数据契约](contracts/README.md)，用 [示例数据](examples/README.md) 并行开发。
 4. 从 [首周任务](docs/backlog.md) 认领任务，按 [协作约定](CONTRIBUTING.md) 提交 PR。
-5. 按下方命令运行检查。真正的产品启动命令由 E 在首次实现后补充。
+5. 按下方命令启动 W1 系统底座，并运行检查。
+
+## 启动 W1 系统底座
+
+跨模块产品原型的启动和复现方式见 [合并原型](docs/evidence/2026-11-26-integrated-prototype.md)。它复用 A 场景编辑、D 的分析与 B 的回放。
+
+当前只用 Python 标准库 HTTP 服务、SQLite 和原生 HTML / CSS / JavaScript，避免在 BOOT-08 技术评审前锁定产品框架。完整边界见 [W1 系统底座 ADR](docs/decisions/0002-w1-system-bootstrap.md)。
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-api.txt
+.\.venv\Scripts\python.exe -m apps.api.crowdturb --port 8000
+```
+
+打开 `http://127.0.0.1:8000`。默认数据库为 `data/crowdturb.sqlite3`，首次启动会创建一个 Mock 示例项目。选择 PDE 或 FNO 可以检查“尚未接入”的失败反馈；两者不会伪造结果。
 
 ## 本地检查
 
@@ -23,6 +37,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe tools/check_repository.py
 .\.venv\Scripts\python.exe -m unittest discover -s tests/contracts -v
+.\.venv\Scripts\python.exe -m unittest discover -s tests/system -v
 ```
 
 macOS / Linux 使用 `.venv/bin/python` 替代 `.\.venv\Scripts\python.exe`。检查覆盖契约、示例一致性、需求追踪条目、文档链接和原始资料校验值，不能证明求解算法或产品已经正确。
@@ -30,8 +45,8 @@ macOS / Linux 使用 `.venv/bin/python` 替代 `.\.venv\Scripts\python.exe`。�
 ## 目录
 
 ```text
-apps/web/             A/B：场景配置与 3D 展示的预留位置
-apps/api/             E：任务、保存、统一 API 的预留位置
+apps/web/             E：统一入口；A/B 的场景、3D 与指标插槽
+apps/api/             E：项目保存、场景版本、任务调度与结果 API
 packages/solver/      C：PDE 与 FNO 的预留位置
 packages/analysis/    D：指标与候选搜索的预留位置
 contracts/            版本化 JSON Schema 与接口约定
@@ -42,7 +57,7 @@ docs/                 需求、计划、设计决策、验证与过程记录
 .github/              Issue / PR 模板和自动检查
 ```
 
-React / TypeScript、Python / FastAPI 等仅为早期候选，尚未安装或锁定。见 [技术选型草案](docs/decisions/0001-architecture.md)。
+React / TypeScript、Python / FastAPI 等仍为候选，尚未安装或锁定。当前 W1 底座采用临时、可替换的 Python 标准库 HTTP 边界，业务服务与适配器接口不依赖该边界。见 [技术选型草案](docs/decisions/0001-architecture.md) 和 [W1 启动决策](docs/decisions/0002-w1-system-bootstrap.md)。
 
 ## 如何体现软件工程
 
@@ -51,6 +66,7 @@ React / TypeScript、Python / FastAPI 等仅为早期候选，尚未安装或锁
 - 模块化与契约设计：五人按模块负责，先对齐输入输出；跨模块变化共同评审。
 - 配置与变更管理：Issue → 分支 → PR → 评审 → 检查 → 合并；保留需求与设计变更记录。
 - 验证与确认：将需求关联到测试、实验及实际结果；未执行和 Mock 证据始终明确标注。
+- AI 辅助开发：用 [Agent 规则](AGENTS.md) 约束开发顺序与模块边界，在 [AI 使用记录](docs/ai/usage-log.md) 保留输入、输出、人工审查和验证；AI 输出不能代替实验证据。
 
 具体流程见 [协作约定](CONTRIBUTING.md)、[测试计划](docs/verification.md) 和 [需求追踪](docs/traceability.json)。课程评分细则尚未提供，这些是项目采用的方法，不代表教师已认可。
 
@@ -62,4 +78,4 @@ React / TypeScript、Python / FastAPI 等仅为早期候选，尚未安装或锁
 
 ## GitHub
 
-本地默认分支为 `main`。远程仓库名建议使用 `CrowdTurb`；当前尚未配置远程地址。源资料随仓库保存，开源许可证和远程可见性由团队决定。
+本地默认分支为 `main`，远程仓库为 [Yueban-gzh/CrowdTurb](https://github.com/Yueban-gzh/CrowdTurb)。源资料随仓库保存；许可证、分支保护和实际评审规则仍由团队决定，模板存在不代表远程规则已生效。
