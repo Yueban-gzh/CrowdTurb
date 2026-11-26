@@ -83,6 +83,22 @@ try {
   assert.notEqual(candidate, "baseline");
   await frame.getByText("✓ 通过", {exact: true}).waitFor();
 
+  await page.getByRole("button", {name: "方案比较"}).click();
+  await recommended.getByRole("button", {name: "同屏对比"}).click();
+  const timeline = page.getByRole("slider", {name: "对比时间轴"});
+  await page.locator("#paired-scale").waitFor();
+  const plans = page.frames().filter((item) => new URL(item.url()).searchParams.get("paired") === "1");
+  assert.equal(plans.length, 2);
+  const startImages = await Promise.all(plans.map((plan) =>
+    plan.locator("#view-2d").evaluate((canvas) => canvas.toDataURL())));
+  await timeline.press("End");
+  assert.equal(await page.locator("#paired-time").textContent(), "60.00 s");
+  const endImages = await Promise.all(plans.map((plan) =>
+    plan.locator("#view-2d").evaluate((canvas) => canvas.toDataURL())));
+  assert.ok(startImages.every((image, index) => image !== endImages[index]), "both maps must redraw on seek");
+  await page.getByRole("button", {name: "返回候选方案"}).click();
+  assert.equal(await page.locator(".paired-views iframe").count(), 0);
+
   const baselineURL = `/api/workbench/runs/${run.run_id}/views/baseline`;
   const saved = await (await page.request.get(`/api/workbench/runs/${run.run_id}`)).json();
   const adjusted = saved.scene.variable_parameters.find((item) => item.type === "facility_center_x");
@@ -91,7 +107,7 @@ try {
   const scene = await (await page.request.get(manifest.artifacts.scene)).json();
   assert.equal(scene.exits[0].width_m, 6.1);
   assert.deepEqual(pageErrors, []);
-  console.log("PASS: edit, queue, reload, D comparison, B baseline and candidate playback");
+  console.log("PASS: edit, queue, reload, D comparison, B playback and synchronized 2D comparison");
 } catch (error) {
   console.error(logs);
   throw error;

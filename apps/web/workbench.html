@@ -54,6 +54,23 @@
             </select></label>
           </div>
           <ul id="candidates"></ul>
+          <section id="paired-comparison" aria-labelledby="paired-title" hidden>
+            <div class="comparison-heading">
+              <h2 id="paired-title" tabindex="-1">同屏对比</h2>
+              <button id="paired-close" class="secondary" type="button">返回候选方案</button>
+            </div>
+            <p id="paired-status" role="status">正在加载两套轨迹…</p>
+            <div class="paired-controls">
+              <button id="paired-play" class="secondary" type="button" disabled>播放</button>
+              <input id="paired-timeline" type="range" min="0" max="0" step="0.01" value="0" aria-label="对比时间轴" disabled>
+              <span id="paired-time">0.00 s</span>
+              <div class="paired-scale" id="paired-scale" hidden><span aria-hidden="true"></span><span id="paired-density"></span></div>
+            </div>
+            <div class="paired-views">
+              <section><h3>基准</h3><div id="paired-baseline"></div></section>
+              <section><h3 id="paired-candidate-name">候选</h3><div id="paired-candidate"></div></section>
+            </div>
+          </section>
         </section>
       </section>
       <aside>

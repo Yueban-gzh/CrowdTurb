@@ -9,6 +9,11 @@ const parameter = byId("parameter");
 const choice = byId("view-choice");
 const filter = byId("candidate-filter");
 const tabs = [...document.querySelectorAll("[data-tab]")];
+const workspace = document.querySelector(".workspace");
+const paired = byId("paired-comparison");
+const pairedTimeline = byId("paired-timeline");
+const pairedPlay = byId("paired-play");
+const compareHosts = [byId("paired-baseline"), byId("paired-candidate")];
 const metricNames = {
   remaining_at_end: "结束时在场人数",
   congestion_area_time: "累计拥堵面积时间",
@@ -29,6 +34,7 @@ let activeRunId;
 let editorReady = false;
 let configuredSource = "mock";
 let replayPose;
+let comparisonPlayback;
 const runLabels = {queued: "排队中", running: "评估中", succeeded: "已完成", failed: "失败"};
 
 async function api(path, payload) {
@@ -84,7 +90,7 @@ function applyFrameTheme(frame, themeName) {
 }
 
 function showTab(tab) {
-  const workspace = document.querySelector(".workspace");
+  if (tab !== "compare" && comparisonPlayback) closePairedComparison();
   if (workspace.dataset.activeTab !== tab) {
     workspace.dataset.activeTab = tab;
     byId("history").open = tab !== "edit";
@@ -95,6 +101,114 @@ function showTab(tab) {
     byId(button.dataset.tab).hidden = !active;
   }
 }
+
+function stopPairedPlayback() {
+  cancelAnimationFrame(comparisonPlayback.animation);
+  comparisonPlayback.animation = undefined;
+  pairedPlay.textContent = "播放";
+}
+
+function closePairedComparison(restoreFocus = false) {
+  stopPairedPlayback();
+  clearTimeout(comparisonPlayback.timeout);
+  const trigger = comparisonPlayback.trigger;
+  compareHosts.forEach((host) => host.replaceChildren());
+  comparisonPlayback = undefined;
+  paired.hidden = true;
+  byId("candidates").hidden = false;
+  delete workspace.dataset.paired;
+  if (restoreFocus) trigger.focus();
+}
+
+function drawPairedTime(time) {
+  const {plans, densityMax} = comparisonPlayback;
+  pairedTimeline.value = time;
+  byId("paired-time").textContent = `${time.toFixed(2)} s`;
+  plans.forEach((plan) => plan.drawAt(time, densityMax));
+}
+
+function openPairedComparison(candidate, trigger) {
+  comparisonPlayback = {trigger, frames: [], plans: []};
+  paired.hidden = false;
+  byId("candidates").hidden = true;
+  workspace.dataset.paired = "true";
+  byId("paired-candidate-name").textContent = `候选 ${candidate}`;
+  const message = byId("paired-status");
+  message.hidden = false;
+  message.textContent = "正在加载两套轨迹…";
+  byId("paired-scale").hidden = true;
+  byId("paired-time").textContent = "0.00 s";
+  pairedTimeline.value = 0;
+  pairedTimeline.disabled = pairedPlay.disabled = true;
+  comparisonPlayback.frames = compareHosts.map((host, i) => {
+    const view = i === 0 ? "baseline" : candidate;
+    const frame = document.createElement("iframe");
+    frame.title = i === 0 ? "基准俯视图" : `候选 ${candidate} 俯视图`;
+    frame.addEventListener("load", () => applyFrameTheme(frame, "ct-viewer"));
+    frame.src = `/viewer/index.html?${new URLSearchParams({run: currentRun.run_id, view, paired: "1"})}`;
+    host.replaceChildren(frame);
+    return frame;
+  });
+  comparisonPlayback.timeout = setTimeout(() => {
+    message.textContent = "同屏对比加载超时。可以返回候选方案后重试。";
+  }, 12000);
+  byId("paired-title").focus();
+}
+
+window.addEventListener("message", (event) => {
+  if (event.origin !== location.origin || !comparisonPlayback) return;
+  const {frames, plans, timeout} = comparisonPlayback;
+  const index = frames.findIndex((frame) => frame.contentWindow === event.source);
+  if (index < 0) return;
+  const message = byId("paired-status");
+  if (event.data?.type === "crowdturb:pair-error") {
+    clearTimeout(timeout);
+    message.textContent = "有一张俯视图加载失败。可以返回候选方案后重试。";
+    return;
+  }
+  if (event.data?.type !== "crowdturb:pair-ready") return;
+  plans[index] = frames[index].contentWindow.crowdTurbPairedPlan;
+  if (!plans[0] || !plans[1]) return;
+  clearTimeout(timeout);
+  const start = Math.max(...plans.map((plan) => plan.start));
+  const end = Math.min(...plans.map((plan) => plan.end));
+  if (end < start) {
+    message.textContent = "基准和候选没有共同的播放时段。";
+    return;
+  }
+  const densityMax = Math.max(...plans.map((plan) => plan.densityMax));
+  comparisonPlayback.densityMax = densityMax;
+  byId("paired-density").textContent = `0–${formatNumber(densityMax)} 人/m²`;
+  byId("paired-scale").hidden = false;
+  pairedTimeline.min = start;
+  pairedTimeline.max = end;
+  pairedTimeline.disabled = pairedPlay.disabled = end === start;
+  message.hidden = true;
+  drawPairedTime(start);
+});
+
+byId("paired-close").addEventListener("click", () => closePairedComparison(true));
+pairedTimeline.addEventListener("input", () => {
+  stopPairedPlayback();
+  drawPairedTime(Number(pairedTimeline.value));
+});
+pairedPlay.addEventListener("click", () => {
+  if (comparisonPlayback.animation !== undefined) {
+    stopPairedPlayback();
+    return;
+  }
+  const end = Number(pairedTimeline.max);
+  const from = Number(pairedTimeline.value) >= end ? Number(pairedTimeline.min) : Number(pairedTimeline.value);
+  const start = performance.now();
+  pairedPlay.textContent = "暂停";
+  function tick(now) {
+    const time = Math.min(end, from + (now - start) / 1000);
+    drawPairedTime(time);
+    if (time === end) stopPairedPlayback();
+    else comparisonPlayback.animation = requestAnimationFrame(tick);
+  }
+  comparisonPlayback.animation = requestAnimationFrame(tick);
+});
 
 function selectView(view, preservePose = true) {
   if (preservePose) replayPose = viewer.contentWindow?.crowdTurbViewState?.() ?? replayPose;
@@ -200,10 +314,16 @@ function showCandidates(run) {
       content.append(reasons);
     }
     if (run.views.includes(candidate.candidate_id)) {
+      const actions = document.createElement("div");
+      actions.className = "candidate-actions";
       const button = document.createElement("button");
       button.textContent = "回放此方案";
       button.addEventListener("click", () => selectView(candidate.candidate_id));
-      item.append(button);
+      const compare = document.createElement("button");
+      compare.textContent = "同屏对比";
+      compare.addEventListener("click", () => openPairedComparison(candidate.candidate_id, compare));
+      actions.append(compare, button);
+      item.append(actions);
     }
     return item;
   });

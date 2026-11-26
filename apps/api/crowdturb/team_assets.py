@@ -50,7 +50,40 @@ def viewer_script(source):
 
 def viewer_comparison(source):
     source = replace_once(source, "init3d(scene, playback, fieldForHeat, dMax, analysis);",
-                          "init3d(scene, playback, fieldForHeat, dMax, analysis, route, readWorkbenchPose(params));")
+                          """if (params.get('paired') === '1') {
+    initPairedPlan(scene, playback, fieldForHeat, analysis, route);
+    return;
+  }
+  init3d(scene, playback, fieldForHeat, dMax, analysis, route, readWorkbenchPose(params));""")
+    source = replace_once(source, "main().catch((err) => {", """main().catch((err) => {
+  if (new URLSearchParams(location.search).get('paired') === '1') {
+    window.parent.postMessage({type: 'crowdturb:pair-error'}, location.origin);
+  }""")
+    source += """
+
+function initPairedPlan(scene, playback, field, analysis, route) {
+  document.documentElement.classList.add('ct-paired-view');
+  document.getElementById('view-2d-pane').classList.remove('hidden');
+  const canvas = document.getElementById('view-2d');
+  const exitCells = new Set(scene.exits.flatMap((exit) => exit.cells.map(([x, y]) => `${x},${y}`)));
+  const start = field.frames[0].timeS;
+  const end = field.frames.at(-1).timeS;
+  const densityMax = robustDensityMax(field.frames);
+  let lastField, lastPeople, lastScale;
+  function drawAt(time, scale) {
+    const sampled = field.frames.findLast((frame) => frame.timeS <= time) || field.frames[0];
+    const people = playback.frames.findLast((frame) => frame.timeS <= time) || playback.frames[0];
+    if (sampled === lastField && people === lastPeople && scale === lastScale) return;
+    draw2d(canvas, scene, sampled.density, sampled.velocity, scale, null, exitCells,
+      analysis, sampled.timeS, people.agents, scene.grid, route?.points_m);
+    lastField = sampled;
+    lastPeople = people;
+    lastScale = scale;
+  }
+  window.crowdTurbPairedPlan = {start, end, densityMax, drawAt};
+  window.parent.postMessage({type: 'crowdturb:pair-ready'}, location.origin);
+}
+"""
     source = replace_once(source, "function init3d(scene, playback, fieldForHeat, dMax, analysis) {",
                           "function init3d(scene, playback, fieldForHeat, dMax, analysis, route, pose) {")
     source = replace_once(source, "function markActive(name) {",

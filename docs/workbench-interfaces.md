@@ -46,6 +46,8 @@ python tools/start_workbench.py --port 8773 --db data/workbench-onnx.sqlite3 --o
 
 使用已有运行时，选择「方案比较」查看展台位置和指标差值，或在「人流与热点 → 2D 俯视」开启「显示参考路线（虚线）」。切换基准与候选时保留俯视模式、相机和当前时间。默认随工作台启动的 B 兼容页提供这些控件。
 
+已求解并保存回放的候选可在「方案比较」点「同屏对比」。两张俯视图使用同一绝对时间和统一的密度色标。如果本地服务还在运行，可执行 `python tools/start_workbench.py --prepare-only` 更新 B 兼容页后刷新。
+
 在仓库根目录启动 ONNX 工作台后，可以用 [44 人展台样例](../examples/workbench.route-demo.json) 复现。下面的端口应与启动命令一致。
 
 ```powershell
