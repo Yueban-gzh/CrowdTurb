@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrowdTurb — B 模块可视化原型（Mock 数据）</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./lib/three.module.js",
+        "three/addons/": "./lib/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">CrowdTurb</span>
+      <span class="brand-sub">B 模块 · 场馆人流 3D 可视化</span>
+    </div>
+    <div class="header-badges">
+      <select id="dataset-select" aria-label="数据集" title="切换数据集">
+        <option value="gym">示例体育馆（A 场景 + Mock 轨迹）</option>
+        <option value="legacy-mock">W1 Mock 小样例（4×3）</option>
+      </select>
+      <span class="badge badge-w1">W1 原型 · BOOT-03</span>
+      <span class="badge badge-mock">Mock 数据</span>
+    </div>
+  </header>
+
+  <div class="mock-banner" role="note">
+    <span class="mock-banner-icon" aria-hidden="true">⚠</span>
+    <span>
+      场馆与场结果均为 <code>examples/</code> 中的合成数据（<code>source=mock</code>），不来自真实 PDE / FNO 求解；
+      示意粒子仅为连续场的可视化，粒子数量与路径不代表真实人数，也不构成个体疏散结论。
+    </span>
+  </div>
+
+  <main class="layout">
+    <section class="stage">
+      <div class="stage-tabs" role="tablist" aria-label="视图切换">
+        <button id="tab-3d" type="button" role="tab" class="stage-tab active" aria-selected="true" aria-controls="viewport-3d">3D 场馆</button>
+        <button id="tab-2d" type="button" role="tab" class="stage-tab" aria-selected="false" aria-controls="view-2d-pane">2D 俯视</button>
+        <div class="stage-spacer"></div>
+        <div class="view-toolbar" role="group" aria-label="3D 视角切换">
+          <button id="btn-view-persp" type="button" class="view-btn active">透视</button>
+          <button id="btn-view-top" type="button" class="view-btn">俯视</button>
+          <button id="btn-view-reset" type="button" class="view-btn">重置视角</button>
+        </div>
+      </div>
+
+      <div id="viewport-3d" class="viewport-3d" role="tabpanel" aria-label="3D 场馆视图"></div>
+
+      <div id="view-2d-pane" class="view-2d-pane hidden" role="tabpanel">
+        <canvas id="view-2d" width="1200" height="900"></canvas>
+        <p id="cell-info" class="hint cell-info-bar">将鼠标移到俯视图上查看单元数据。</p>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="panel">
+        <h2>图例</h2>
+        <div class="legend-gradient">
+          <span id="legend-threshold" class="legend-notch" hidden></span>
+        </div>
+        <div class="legend-scale-labels">
+          <span>0</span>
+          <span>密度 人/m²</span>
+          <span id="legend-dmax">—</span>
+        </div>
+        <div class="legend-items">
+          <div class="legend-item"><span class="swatch exit"></span>出口</div>
+          <div class="legend-item"><span class="swatch obstacle"></span>障碍 / 不可通行</div>
+          <div class="legend-item"><span class="swatch particle"></span>个体 / 示意粒子</div>
+          <div class="legend-item"><span class="swatch hotspot"></span>分析热点</div>
+        </div>
+      </div>
+
+      <div class="panel" id="analysis-panel">
+        <div class="panel-head-row">
+          <h2>分析指标</h2>
+          <span id="analysis-source" class="status-badge">—</span>
+        </div>
+        <div id="analysis-body" class="analysis-body">
+          <p class="hint">正在加载分析结果…</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head-row">
+          <h2>数据与契约自检</h2>
+          <span id="status-summary" class="status-badge ok">…</span>
+          <button id="status-toggle" type="button" class="btn-ghost" aria-expanded="false">详情</button>
+        </div>
+        <ul id="status" class="status-list hidden"><li class="pending">正在加载 Mock 数据…</li></ul>
+      </div>
+    </aside>
+  </main>
+
+  <div class="controls-bar">
+    <button id="btn-play" type="button" class="btn-primary">暂停</button>
+    <span id="time-min" class="time-bound">0.0 s</span>
+    <input id="timeline" type="range" min="0" max="1000" step="1" value="0" aria-label="时间轴" />
+    <span id="time-max" class="time-bound">1.0 s</span>
+    <select id="speed" aria-label="播放倍速">
+      <option value="0.5">0.5×</option>
+      <option value="1" selected>1×</option>
+      <option value="2">2×</option>
+      <option value="4">4×</option>
+    </select>
+    <span id="time-label" class="time-label">t = 0.00 s</span>
+  </div>
+
+  <footer class="page-footer">
+    CrowdTurb · B 模块 W1 原型（BOOT-03 / REQ-03）· 技术栈待 BOOT-08 评审，当前为原生 ES Module + Three.js（本地 vendored，无构建步骤）
+  </footer>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
