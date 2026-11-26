@@ -1,0 +1,478 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CrowdTurb trajectory analysis proposal 0.3.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "analysis_id",
+    "scene_id",
+    "scene_revision",
+    "input_hash",
+    "initial_state_hash",
+    "source",
+    "derived_from",
+    "status",
+    "method_version",
+    "time_range_s",
+    "grid",
+    "threshold",
+    "metrics",
+    "series",
+    "hotspots",
+    "model_sha256",
+    "simulation_settings",
+    "reproducibility_record",
+    "density_estimator"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0"
+    },
+    "analysis_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scene_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scene_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "input_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "initial_state_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "source": {
+      "enum": [
+        "mock",
+        "stddn"
+      ]
+    },
+    "derived_from": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "normal"
+    },
+    "method_version": {
+      "const": "trajectory-analysis-0.2.0"
+    },
+    "time_range_s": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nx",
+        "ny",
+        "dx",
+        "dy",
+        "origin"
+      ],
+      "properties": {
+        "nx": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ny": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "dx": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "dy": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "origin": {
+          "$ref": "#/$defs/vector"
+        }
+      }
+    },
+    "threshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit",
+        "comparison",
+        "basis"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit": {
+          "const": "person/m2"
+        },
+        "comparison": {
+          "const": ">"
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "remaining_at_end",
+        "congestion_area_time",
+        "exited_people"
+      ],
+      "properties": {
+        "remaining_at_end": {
+          "$ref": "#/$defs/metric"
+        },
+        "congestion_area_time": {
+          "$ref": "#/$defs/metric"
+        },
+        "exited_people": {
+          "$ref": "#/$defs/metric"
+        }
+      }
+    },
+    "series": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "time_s",
+          "values",
+          "unit",
+          "source",
+          "status",
+          "interpolation"
+        ],
+        "properties": {
+          "metric_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "time_s": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "values": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "enum": [
+              "mock",
+              "stddn"
+            ]
+          },
+          "status": {
+            "const": "normal"
+          },
+          "interpolation": {
+            "const": "previous_sample"
+          }
+        }
+      }
+    },
+    "hotspots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ix",
+          "iy",
+          "start_time_s",
+          "end_time_s",
+          "observed_duration_s",
+          "peak_density",
+          "unit",
+          "source",
+          "status"
+        ],
+        "properties": {
+          "ix": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "iy": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "start_time_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end_time_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "observed_duration_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "peak_density": {
+            "type": "number",
+            "minimum": 0
+          },
+          "unit": {
+            "const": "person/m2"
+          },
+          "source": {
+            "enum": [
+              "mock",
+              "stddn"
+            ]
+          },
+          "status": {
+            "const": "normal"
+          }
+        }
+      }
+    },
+    "model_sha256": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/hash"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "simulation_settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dt_s",
+        "seed",
+        "integrator",
+        "planner_version",
+        "collision_version"
+      ],
+      "properties": {
+        "dt_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "integrator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "planner_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collision_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reproducibility_record": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "density_estimator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "bandwidth_m",
+        "support_sigma",
+        "boundary",
+        "version"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "cell",
+            "gaussian_visible"
+          ]
+        },
+        "bandwidth_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "support_sigma": {
+          "enum": [
+            null,
+            3.0
+          ]
+        },
+        "boundary": {
+          "enum": [
+            "whole_walkable_cell",
+            "visible_walkable_centers_per_person_normalization"
+          ]
+        },
+        "version": {
+          "const": "1"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "cell"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "bandwidth_m": {
+                "type": "null"
+              },
+              "support_sigma": {
+                "type": "null"
+              },
+              "boundary": {
+                "const": "whole_walkable_cell"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "bandwidth_m": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "support_sigma": {
+                "const": 3.0
+              },
+              "boundary": {
+                "const": "visible_walkable_centers_per_person_normalization"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "behavior_hash": {
+      "$ref": "#/$defs/hash"
+    }
+  },
+  "$defs": {
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit",
+        "definition",
+        "source",
+        "status"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unit": {
+          "enum": [
+            "person",
+            "m2*s"
+          ]
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "enum": [
+            "mock",
+            "stddn"
+          ]
+        },
+        "status": {
+          "const": "normal"
+        }
+      }
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "vector": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 2
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "stddn"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "model_sha256": {
+            "$ref": "#/$defs/hash"
+          },
+          "reproducibility_record": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ]
+}

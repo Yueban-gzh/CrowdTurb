@@ -31,6 +31,8 @@ from pathlib import Path
 
 import numpy as np
 
+from passages import check_passage, passage_banks, passage_envelope, passage_intersects_wall
+
 from geometry import (
     EPS,
     convex_polygons_overlap,
@@ -45,8 +47,8 @@ from geometry import (
     segment_polygon_distance,
 )
 
-FORMAT_VERSION = "0.2"
-SUPPORTED_VERSIONS = ("0.1", "0.2")
+FORMAT_VERSION = "0.3"
+SUPPORTED_VERSIONS = ("0.1", "0.2", "0.3")
 SIDES = ("N", "S", "E", "W")
 WALL_MARGIN = 0.3      # 出口开口离墙角的最小距离（米），避免贴角开门
 DEFAULT_JAM = 4.0      # 默认拥堵密度阈值（人/m²），超过只告警
@@ -54,6 +56,7 @@ DEFAULT_MIN_PASSAGE = 0.9   # 默认最小必要通路宽度（米），0=不检
 DEFAULT_EXIT_CLEARANCE = 0.5  # 设施到出口开口的最小距离（米）
 PROFILE_VALUES = ("seated", "standing")
 VARIABLE_PARAMETER_TYPES = {
+    "passage_width": {"target": "passage", "field": "width", "unit": "m"},
     "exit_width": {"target": "exit", "field": "width", "unit": "m"},
     "facility_center_x": {"target": "facility", "field": "center_x", "unit": "m"},
     "facility_center_y": {"target": "facility", "field": "center_y", "unit": "m"},
@@ -117,6 +120,10 @@ def _facilities(scene: dict) -> list[dict]:
     return scene.get("geometry", {}).get("facilities", []) or []
 
 
+def _passages(scene: dict) -> list[dict]:
+    return scene.get("geometry", {}).get("passages", [])
+
+
 def _layout_policy(scene: dict) -> dict:
     raw = scene.get("geometry", {}).get("layout_policy", {}) or {}
     return {
@@ -152,7 +159,8 @@ def _variable_target(scene: dict, declaration: dict) -> dict:
     spec = VARIABLE_PARAMETER_TYPES.get(declaration.get("type"))
     if spec is None:
         raise ValueError(f"不支持的可变参数类型: {declaration.get('type')}")
-    targets = scene["exits"] if spec["target"] == "exit" else _facilities(scene)
+    targets = {"exit": scene["exits"], "facility": _facilities(scene),
+               "passage": _passages(scene)}[spec["target"]]
     target_id = declaration.get("target_id")
     for target in targets:
         if target.get("id") == target_id:
@@ -177,6 +185,8 @@ def _variable_parameter_change(scene: dict, declaration: dict) -> dict:
     field = VARIABLE_PARAMETER_TYPES[declaration["type"]]["field"]
     if declaration["type"] == "exit_width":
         return {"exit_id": target["id"], "width": float(target["width"])}
+    if declaration["type"] == "passage_width":
+        return {"passage_id": target["id"], "width": float(target["width"])}
     if field in ("center_x", "center_y"):
         return {"facility_id": target["id"],
                 "center": [float(target["center"][0]), float(target["center"][1])]}
@@ -258,7 +268,7 @@ def _variable_parameter_problems(scene: dict) -> list[str]:
                 not all(_finite(v) for v in limits) or float(limits[0]) > float(limits[1]):
             problems.append(f"{label} 的 allowed_range 必须是 [min, max] 且 min<=max")
             continue
-        if ptype in ("exit_width", "facility_length", "facility_width") and float(limits[0]) <= 0:
+        if ptype in ("exit_width", "passage_width", "facility_length", "facility_width") and float(limits[0]) <= 0:
             problems.append(f"{label} 的 allowed_range 最小值必须为正数")
         if ptype == "facility_rotation" and (float(limits[0]) < 0 or float(limits[1]) > 360):
             problems.append(f"{label} 的 allowed_range 应在 [0, 360] 度内")
@@ -277,6 +287,11 @@ def _variable_parameter_problems(scene: dict) -> list[str]:
             continue
         if abs(actual - float(current)) > EPS:
             problems.append(f"{label} 的 current_value 与场景实际值 {actual} 不一致")
+        if spec["target"] == "passage":
+            if not target["adjustable"]:
+                problems.append(f"{label} 引用的通道不允许调整")
+            if limits[0] < target["width_limits"][0] or limits[1] > target["width_limits"][1]:
+                problems.append(f"{label} 的范围超出通道 width_limits")
         if spec["target"] == "facility":
             if ptype in ("facility_center_x", "facility_center_y", "facility_rotation") and \
                     not target.get("movable", False):
@@ -376,11 +391,11 @@ def load_scene(path: str | Path) -> dict:
         if ob["w"] <= 0 or ob["h"] <= 0:
             raise ValueError(f"障碍 {ob['name']} 的宽高必须为正")
 
-    if "variable_parameters" in scene and version != "0.2":
-        raise ValueError("variable_parameters 需要场景版本 0.2")
+    if "variable_parameters" in scene and version not in ("0.2", "0.3"):
+        raise ValueError("variable_parameters 需要场景版本 0.2/0.3")
     facilities = geo.get("facilities", [])
-    if facilities and version != "0.2":
-        raise ValueError("geometry.facilities 需要场景版本 0.2")
+    if facilities and version not in ("0.2", "0.3"):
+        raise ValueError("geometry.facilities 需要场景版本 0.2/0.3")
     if not isinstance(facilities, list):
         raise ValueError("geometry.facilities 必须是数组")
     seen_facilities = set()
@@ -389,6 +404,18 @@ def load_scene(path: str | Path) -> dict:
         if f["id"] in seen_facilities:
             raise ValueError(f"设施 id 重复: {f['id']}")
         seen_facilities.add(f["id"])
+
+    passages = _passages(scene)
+    if not isinstance(passages, list):
+        raise ValueError("geometry.passages 必须是数组")
+    if passages and version != "0.3":
+        raise ValueError("geometry.passages 需要场景版本 0.3")
+    passage_ids = set()
+    for passage in passages:
+        check_passage(passage)
+        if passage["id"] in passage_ids:
+            raise ValueError(f"通道 id 重复: {passage['id']}")
+        passage_ids.add(passage["id"])
 
     policy = geo.get("layout_policy")
     if policy is not None:
@@ -497,7 +524,14 @@ def rasterize(scene: dict) -> dict:
         for (i, j) in cells:
             wall_mask[j, i] = False
 
-    base_walkable = ~(fixed_mask | wall_mask)
+    # Passage banks only add obstacles. They never erase fixed obstacles or walls.
+    passage_mask = np.zeros((Ny, Nx), dtype=bool)
+    for passage in _passages(scene):
+        check_passage(passage)
+        for bank in passage_banks(passage):
+            passage_mask |= ((XX > bank["x"]) & (XX < bank["x"] + bank["w"])
+                             & (YY > bank["y"]) & (YY < bank["y"] + bank["h"]))
+    base_walkable = ~(fixed_mask | wall_mask | passage_mask)
 
     # --- 参数化设施（旋转矩形，格心判定） ---
     facility_mask = np.zeros((Ny, Nx), dtype=bool)
@@ -507,7 +541,7 @@ def rasterize(scene: dict) -> dict:
         facility_mask |= m
         facility_cells_by_id[f["id"]] = int(m.sum())
 
-    obstacle_mask = fixed_mask | facility_mask
+    obstacle_mask = fixed_mask | facility_mask | passage_mask
     walkable = ~(obstacle_mask | wall_mask)
 
     exit_blocked_by_facility = {
@@ -561,13 +595,16 @@ def rasterize(scene: dict) -> dict:
          ("exits", exit_arr)],
         meta={"params": scene["params"], "exit_ids": exit_ids, "res": res},
     )
-    layout_hash = hashlib.sha256(_canonical_json(facility_poses(scene)).encode("utf-8")).hexdigest()
+    layout_value = facility_poses(scene)
+    if _passages(scene):
+        layout_value = {"facilities": layout_value, "passages": _passages(scene)}
+    layout_hash = hashlib.sha256(_canonical_json(layout_value).encode("utf-8")).hexdigest()
 
     return {
         "Nx": Nx, "Ny": Ny, "res": res,
         "walkable": walkable, "base_walkable": base_walkable,
         "obstacle_mask": obstacle_mask, "fixed_obstacle_mask": fixed_mask,
-        "facility_mask": facility_mask, "wall_mask": wall_mask,
+        "facility_mask": facility_mask, "wall_mask": wall_mask, "passage_wall_mask": passage_mask,
         "rho0": rho0, "zone_id": zone_id, "crowd_mask": crowd_mask,
         "exit_cells": exit_cells, "exit_segments": exit_segments,
         "exit_blocked_by_facility": exit_blocked_by_facility,
@@ -650,6 +687,42 @@ def validate(scene: dict, R: dict | None = None) -> list[dict]:
             if (A["x"] < B["x"] + B["w"] and B["x"] < A["x"] + A["w"] and
                     A["y"] < B["y"] + B["h"] and B["y"] < A["y"] + A["h"]):
                 problems.append(_err("error", f"障碍『{A['name']}』与『{B['name']}』重叠"))
+
+    # A passage owns its entire envelope. Existing structures are never carved away.
+    envelopes = []
+    banks = []
+    for passage in _passages(scene):
+        check_passage(passage)
+        poly = passage_envelope(passage)
+        label = passage["id"]
+        if not polygon_inside_rect(poly, 0.0, 0.0, L, H):
+            problems.append(_err("error", f"通道 {label} 的预留包络超出场地"))
+        if passage["width"] < policy["min_passage_width"] - EPS:
+            problems.append(_err("error", f"通道 {label} 宽度低于 min_passage_width"))
+        for ob in obs:
+            if convex_polygons_overlap(poly, rect_polygon(ob["x"], ob["y"], ob["w"], ob["h"])):
+                problems.append(_err("error", f"通道 {label} 的预留包络与固定障碍冲突"))
+        for a, other in envelopes:
+            if convex_polygons_overlap(poly, other):
+                problems.append(_err("error", f"通道 {label} 与 {a} 的预留包络重叠"))
+        for x1, y1, x2, y2 in geo.get("walls", []):
+            if passage_intersects_wall(passage, [x1, y1, x2, y2]):
+                problems.append(_err("error", f"通道 {label} 的预留包络穿过固定隔墙"))
+        envelopes.append((label, poly))
+        for bank in passage_banks(passage):
+            bank_poly = rect_polygon(bank["x"], bank["y"], bank["w"], bank["h"])
+            for zone in scene["crowd"]["zones"]:
+                if polygon_inside_polygon(bank_poly, zone["polygon"]) or any(
+                        segment_intersects_polygon_interior(zone["polygon"][i - 1], vertex, bank_poly)
+                        for i, vertex in enumerate(zone["polygon"])):
+                    problems.append(_err("error", f"通道 {label} 隔挡覆盖初始人群区 {zone['id']}"))
+            for ex in scene["exits"]:
+                seg = exit_segment(ex, geo["size"])
+                if segment_polygon_distance(seg[:2], seg[2:], bank_poly) < policy["exit_clearance"] - EPS:
+                    problems.append(_err("error", f"通道 {label} 隔挡侵占出口净距"))
+            banks.append(bank)
+    # Facility collision checks also include passage banks.
+    obs = list(obs) + banks
 
     # 出口贴墙角 / 互相重叠
     for ex in scene["exits"]:
@@ -744,6 +817,12 @@ def validate(scene: dict, R: dict | None = None) -> list[dict]:
         problems.append(_err("warning",
             f"存在 {R['overlap_cells']} 个格子被多个区域覆盖，密度已按总人数归一化"))
 
+    if (R["passage_wall_mask"] & R["crowd_mask"]).any():
+        problems.append(_err("error", "通道隔挡覆盖初始人群，不允许重新分配人群掩盖布局冲突"))
+    for ex_id, cells in R["exit_cells"].items():
+        if any(R["passage_wall_mask"][j, i] for i, j in cells):
+            problems.append(_err("error", f"通道隔挡覆盖出口 {ex_id}"))
+
     for f in facilities:
         if R["facility_cells_by_id"].get(f["id"], 0) == 0:
             problems.append(_err("warning",
@@ -786,7 +865,7 @@ def validate(scene: dict, R: dict | None = None) -> list[dict]:
 
         # 最小必要通路宽度：出口本身允许较窄，但门内通道要够宽
         min_w = policy["min_passage_width"]
-        if min_w > 0 and facilities:
+        if min_w > 0 and (facilities or _passages(scene)):
             clearance = _clearance_field(R["walkable"], res)
             wide = R["walkable"] & (clearance >= min_w / 2.0)
             exit_mask = np.zeros_like(R["walkable"])
@@ -843,6 +922,7 @@ def export_npz(scene: dict, out_path: str | Path) -> Path:
         obstacle_mask=R["obstacle_mask"],
         fixed_obstacle_mask=R["fixed_obstacle_mask"],
         facility_mask=R["facility_mask"],
+        passage_wall_mask=R["passage_wall_mask"],
         zone_id=R["zone_id"],
         dx=np.float32(R["res"]),
         exits_grid=exits_grid,
@@ -853,6 +933,7 @@ def export_npz(scene: dict, out_path: str | Path) -> Path:
         scene_version=str(scene.get("version", "")),
         scene_revision=np.int32(_scene_revision(scene)),
         layout_json=json.dumps(facility_poses(scene), ensure_ascii=False),
+        passages_json=json.dumps(_passages(scene), ensure_ascii=False),
         variable_parameters_json=json.dumps(variable_parameters(scene) or [], ensure_ascii=False),
         layout_hash=R["layout_hash"],
         mask_hash=R["mask_hash"],

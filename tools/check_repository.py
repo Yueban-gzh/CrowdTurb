@@ -186,7 +186,23 @@ def main() -> int:
     validate_scene(scene)
     validate_result(result, scene)
     validate_task(task, scene, result)
+    sys.path.insert(0, str(ROOT / "packages/analysis"))
+    from crowdturb_analysis.core import analyze, check_schema
+    trajectory = load_json(ROOT / "examples/trajectory.mock.json")
+    analysis = load_json(ROOT / "examples/analysis.mock.json")
+    derived = load_json(ROOT / "examples/field-from-trajectory.mock.json")
+    expected_field, expected_analysis = analyze(trajectory, analysis["threshold"]["value"], analysis["threshold"]["basis"])
+    require(analysis == expected_analysis and derived == expected_field, "Generated trajectory fixtures are stale")
+    check_schema(derived, "derived-field")
+    from crowdturb_analysis.demo import build_demo
+    from crowdturb_analysis.candidates import SCENE_LIB
+    from scene_io import load_scene
+    comparison = load_json(ROOT / "examples/comparison.mock.json")
+    expected_demo = build_demo(load_scene(SCENE_LIB.parent / "scenes/passage_optimization_example.json"))
+    require(comparison == expected_demo["comparison"], "Mock comparison is stale")
     print("PASS: 3 draft schemas and linked mock fixtures")
+    print("PASS: trajectory, derived-field and analysis proposals with reproducible mock aggregation")
+    print("PASS: automatic candidates and mock comparison regenerated; no simulator called")
     print(f"PASS: {check_document_links()} local document links")
     print(f"PASS: {check_traceability()} requirement trace entries (not product acceptance)")
     print(f"PASS: {check_sources()} original document checksums")

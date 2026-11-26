@@ -3,7 +3,7 @@
 
 职责边界：
     A：只接受“可移动/可改尺寸”的参数化设施位姿修改，生成新场景并做几何校验；
-    D：生成候选、按报告过滤不可行/重复布局，再交给 C 跑 PDE；
+    D：生成候选、按报告过滤不可行/重复布局，再交给 C 完整个体仿真；
     C：读取 rasterize/export_npz 的 walkable、rho0、掩码和哈希。
 
 命令行：
@@ -23,8 +23,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from scene_io import (
-    FORMAT_VERSION,
     _facilities,
+    _passages,
     _scene_revision,
     _variable_parameter_problems,
     facility_poses,
@@ -57,8 +57,8 @@ def apply_layout(scene: dict, changes: list[dict]) -> dict:
         length, width（需要 resizable=true 且在 size_limits 内）
     以及 exits 中的 width；声明过的可变参数范围也会作为硬约束。
     """
-    if scene.get("version") != FORMAT_VERSION:
-        raise LayoutError(f"设施布局修改需要场景版本 {FORMAT_VERSION}；"
+    if scene.get("version") not in ("0.2", "0.3"):
+        raise LayoutError("布局修改需要场景版本 0.2/0.3；"
                           f"当前为 {scene.get('version')}（v0.1 只有固定障碍）")
     if not isinstance(changes, list) or not changes:
         raise LayoutError("候选修改必须是非空数组")
@@ -67,6 +67,7 @@ def apply_layout(scene: dict, changes: list[dict]) -> dict:
     facilities = _facilities(new)
     by_id = {f["id"]: f for f in facilities}
     exits_by_id = {ex["id"]: ex for ex in new.get("exits", [])}
+    passages_by_id = {p["id"]: p for p in _passages(new)}
     seen = set()
 
     for change in changes:
@@ -74,8 +75,25 @@ def apply_layout(scene: dict, changes: list[dict]) -> dict:
             raise LayoutError("每条修改必须是对象")
         has_facility = "facility_id" in change
         has_exit = "exit_id" in change
-        if has_facility == has_exit:
-            raise LayoutError("每条修改必须且只能提供 facility_id 或 exit_id")
+        has_passage = "passage_id" in change
+        if sum((has_facility, has_exit, has_passage)) != 1:
+            raise LayoutError("每条修改必须且只能提供 facility_id、exit_id 或 passage_id")
+        if has_passage:
+            pid = change["passage_id"]
+            if not isinstance(pid, str) or pid not in passages_by_id:
+                raise LayoutError(f"未知通道 id：{pid}")
+            if f"passage:{pid}" in seen:
+                raise LayoutError(f"同一候选重复修改通道 {pid}")
+            seen.add(f"passage:{pid}")
+            p = passages_by_id[pid]
+            if set(change) != {"passage_id", "width"} or not _finite(change.get("width")):
+                raise LayoutError("通道候选只允许 width 有限数")
+            if not p["adjustable"]:
+                raise LayoutError(f"通道 {pid} 不允许修改")
+            if not p["width_limits"][0] <= change["width"] <= p["width_limits"][1]:
+                raise LayoutError(f"通道 {pid} 宽度超出 width_limits")
+            p["width"] = float(change["width"])
+            continue
         if has_exit:
             eid = change.get("exit_id")
             if not isinstance(eid, str) or not eid:
@@ -236,6 +254,18 @@ def _variable_parameter_deltas(scene: dict, new_scene: dict) -> list[dict]:
     return items
 
 
+def _passage_deltas(scene, new_scene, changes):
+    old = {p["id"]: p for p in _passages(scene)}
+    new = {p["id"]: p for p in _passages(new_scene)}
+    return [{"passage_id": c["passage_id"],
+             "before_width_m": old[c["passage_id"]]["width"],
+             "after_width_m": new[c["passage_id"]]["width"],
+             "width_delta_m": new[c["passage_id"]]["width"] - old[c["passage_id"]]["width"],
+             "clear_area_delta_m2": (new[c["passage_id"]]["width"] - old[c["passage_id"]]["width"])
+                                     * old[c["passage_id"]]["length"]}
+            for c in changes if "passage_id" in c]
+
+
 def _failed(candidate_id: str | None, message: str, changes: list[dict] | None = None,
             declarations: list[dict] | None = None) -> dict:
     return {
@@ -249,6 +279,9 @@ def _failed(candidate_id: str | None, message: str, changes: list[dict] | None =
         "changed_exits": [],
         "pose_delta": [],
         "exit_width_deltas": [],
+        "passage_width_deltas": [],
+        "changed_passages": [],
+        "passages": [],
         "move_distance_m": 0.0,
         "rotation_delta_deg": 0.0,
         "variable_parameters": copy.deepcopy(declarations or []),
@@ -278,17 +311,19 @@ def evaluate_layout(scene: dict, changes: list[dict], base_raster: dict | None =
     declarations = variable_parameters(new_scene)
     parameter_deltas = _variable_parameter_deltas(scene, new_scene)
     exit_deltas = _exit_width_deltas(scene, new_scene, changes)
+    passage_deltas = _passage_deltas(scene, new_scene, changes)
     R = rasterize(new_scene)
     problems = validate(new_scene, R)
     feasible = not any(p["level"] == "error" for p in problems)
     delta = _pose_delta(scene, new_scene, changes)
     mask_changed = R["mask_hash"] != base_R["mask_hash"]
-    below_grid = bool(delta["modified"] and not mask_changed)
+    below_grid = bool((delta["modified"] or any(d["width_delta_m"] for d in passage_deltas))
+                      and not mask_changed)
     if below_grid:
         problems.append({
             "level": "warning",
             "msg": f"修改后几何不同，但栅格掩码未变化（位移小于约 {R['res']} 米）；"
-                   f"D 应跳过该候选的重复 PDE 求解",
+                   f"D 应按 input_hash 判断是否跳过该候选的重复仿真",
         })
 
     return {
@@ -302,6 +337,9 @@ def evaluate_layout(scene: dict, changes: list[dict], base_raster: dict | None =
         "changed_exits": [c["exit_id"] for c in changes if "exit_id" in c],
         "pose_delta": delta["items"],
         "exit_width_deltas": exit_deltas,
+        "passage_width_deltas": passage_deltas,
+        "changed_passages": [c["passage_id"] for c in changes if "passage_id" in c],
+        "passages": copy.deepcopy(_passages(new_scene)),
         "move_distance_m": delta["move_distance_m"],
         "rotation_delta_deg": delta["rotation_delta_deg"],
         "variable_parameters": copy.deepcopy(declarations),
@@ -328,8 +366,8 @@ def evaluate_layout(scene: dict, changes: list[dict], base_raster: dict | None =
 
 def evaluate_candidates(scene: dict, candidates: list[dict]) -> dict:
     """批量评价并去重。solve_required=False 的候选不需要 C 重复求解。"""
-    if scene.get("version") != FORMAT_VERSION:
-        raise LayoutError(f"候选评价需要场景版本 {FORMAT_VERSION}；当前为 {scene.get('version')}")
+    if scene.get("version") not in ("0.2", "0.3"):
+        raise LayoutError(f"候选评价需要场景版本 0.2/0.3；当前为 {scene.get('version')}")
     if not isinstance(candidates, list):
         raise LayoutError("candidates 必须是数组")
 
