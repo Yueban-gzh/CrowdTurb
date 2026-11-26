@@ -25,7 +25,7 @@ class SimulationInput:
 
 def initial_agents(raster, people):
     if not 0 <= people <= 500:
-        raise ValueError("Mock 评估支持 0 至 500 人。")
+        raise ValueError("单层评估支持 0 至 500 个初始人员。")
     if not people:
         return []
     density = raster["rho0"]
@@ -40,12 +40,12 @@ def initial_agents(raster, people):
             cumulative += float(value)
             while len(agents) < people and (len(agents) + 0.5) * total / people <= cumulative:
                 agents.append({
-                    "agent_id": f"mock-{len(agents):04d}",
+                    "agent_id": f"person-{len(agents):04d}",
                     "position_m": [(ix + 0.5) * resolution, (iy + 0.5) * resolution],
                     "velocity_mps": [0.0, 0.0],
                 })
     if len(agents) != people:
-        raise ValueError("Mock 无法从初始密度生成指定人数。")
+        raise ValueError("无法从初始密度生成指定人数。")
     return agents
 
 

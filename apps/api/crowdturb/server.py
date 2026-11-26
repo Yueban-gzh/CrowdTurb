@@ -101,15 +101,15 @@ def make_handler(service: AppService, static_root: Path, viewer_root: Path | Non
                     return artifacts[parts[4]], HTTPStatus.OK
 
             if parts == ["api", "workbench", "scene"] and method == "GET":
-                return {"scene": service.get_workbench_scene()}, HTTPStatus.OK
+                return {"scene": service.get_workbench_scene(), "source": service.preview_source}, HTTPStatus.OK
             if parts == ["api", "workbench", "runs"]:
                 if method == "POST":
-                    return {"run": service.create_preview(payload.get("scene"))}, HTTPStatus.ACCEPTED
+                    return {"run": service.create_preview(payload.get("scene"), payload.get("parameter"))}, HTTPStatus.ACCEPTED
                 return {"runs": service.list_previews()}, HTTPStatus.OK
             if parts[:3] == ["api", "workbench", "runs"] and method == "GET" and len(parts) >= 4:
                 record, artifacts = service.get_preview(parts[3])
                 if len(parts) == 4:
-                    return {"run": record, "scene": artifacts["scene"]}, HTTPStatus.OK
+                    return {"run": record, "scene": artifacts["scene"], "source": service.preview_source}, HTTPStatus.OK
                 if len(parts) in (6, 7) and parts[4] == "views":
                     if record["status"] != "succeeded":
                         raise ApiError(409, "preview_unavailable", "这次评估还没有可播放的结果。")
@@ -269,8 +269,9 @@ class ApiServer:
         seed_demo: bool = True,
         team_fixtures: Path | None = None,
         viewer_root: Path | None = None,
+        model_path: Path | None = None,
     ) -> None:
-        self.service = AppService(database_path, seed_demo=seed_demo, team_fixtures=team_fixtures)
+        self.service = AppService(database_path, seed_demo=seed_demo, team_fixtures=team_fixtures, model_path=model_path)
         self.httpd = ThreadingHTTPServer((host, port), make_handler(self.service, static_root, viewer_root))
         self.httpd.daemon_threads = True
 
@@ -302,6 +303,7 @@ def main() -> int:
     parser.add_argument("--no-demo", action="store_true", help="Do not create the Mock demo project.")
     parser.add_argument("--team-fixtures", type=Path, help="D checkout root containing examples/ and contracts/.")
     parser.add_argument("--viewer-root", type=Path, help="B checkout root containing apps/web/prototype/.")
+    parser.add_argument("--onnx-model", type=Path, help="Enable single-floor STDDN with a local ONNX file")
     args = parser.parse_args()
 
     server = ApiServer(
@@ -311,10 +313,11 @@ def main() -> int:
         seed_demo=not args.no_demo,
         team_fixtures=args.team_fixtures,
         viewer_root=args.viewer_root,
+        model_path=args.onnx_model,
     )
     print(f"CrowdTurb system base: {server.url}")
     print(f"SQLite: {Path(args.db).resolve()}")
-    print("Data source: hand-authored Mock fixture only; no PDE/FNO execution is available yet.")
+    print(f"Workbench evaluation source: {server.service.preview_source}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -1,0 +1,236 @@
+{
+  "version": "0.2",
+  "meta": {
+    "name": "展台绕行 · 44 人",
+    "author": "D",
+    "created": "2026-11-26",
+    "revision": 5,
+    "parent_revision": 2,
+    "notes": "出口与展台编辑、栅格转换和单层人流评估。"
+  },
+  "geometry": {
+    "size": [
+      30,
+      20
+    ],
+    "resolution": 0.5,
+    "walls": [],
+    "obstacles": [
+      {
+        "name": "固定障碍1",
+        "x": 17.78,
+        "y": 10.6,
+        "w": 2.18,
+        "h": 2.73
+      },
+      {
+        "name": "固定障碍2",
+        "x": 20.73,
+        "y": 7.22,
+        "w": 3.49,
+        "h": 2.4
+      }
+    ],
+    "layout_policy": {
+      "min_passage_width": 0.9,
+      "exit_clearance": 0.5
+    },
+    "facilities": [
+      {
+        "id": "F1",
+        "name": "南侧展台",
+        "effect": "block",
+        "center": [
+          15.25,
+          5
+        ],
+        "length": 3,
+        "width": 2,
+        "rotation_deg": 0,
+        "movable": true,
+        "resizable": false,
+        "allowed_region": [
+          [
+            5,
+            3
+          ],
+          [
+            25,
+            3
+          ],
+          [
+            25,
+            7
+          ],
+          [
+            5,
+            7
+          ]
+        ]
+      },
+      {
+        "id": "F2",
+        "name": "临时展台 2",
+        "kind": "exhibit",
+        "effect": "block",
+        "center": [
+          4.2,
+          11.15
+        ],
+        "length": 4.91,
+        "width": 4.8,
+        "rotation_deg": 0,
+        "movable": true,
+        "resizable": false,
+        "allowed_region": [
+          [
+            0,
+            6.7454545454545425
+          ],
+          [
+            8.654545454545456,
+            6.7454545454545425
+          ],
+          [
+            8.654545454545456,
+            15.54545454545454
+          ],
+          [
+            0,
+            15.54545454545454
+          ]
+        ]
+      }
+    ]
+  },
+  "exits": [
+    {
+      "id": "E1",
+      "name": "南出口",
+      "side": "S",
+      "offset": 12,
+      "width": 6
+    }
+  ],
+  "crowd": {
+    "zones": [
+      {
+        "id": "Z1",
+        "name": "北侧人群",
+        "polygon": [
+          [
+            5,
+            14
+          ],
+          [
+            25,
+            14
+          ],
+          [
+            25,
+            18
+          ],
+          [
+            5,
+            18
+          ]
+        ],
+        "count": 2,
+        "profile": "standing"
+      },
+      {
+        "id": "Z2",
+        "name": "人群区2",
+        "polygon": [
+          [
+            10.036363636363637,
+            9.290909090909087
+          ],
+          [
+            16.145454545454548,
+            9.290909090909087
+          ],
+          [
+            16.145454545454548,
+            11.909090909090907
+          ],
+          [
+            10.036363636363637,
+            11.909090909090907
+          ]
+        ],
+        "count": 32,
+        "profile": "standing"
+      },
+      {
+        "id": "Z3",
+        "name": "人群区3",
+        "polygon": [
+          [
+            21.81818181818182,
+            10.490909090909087
+          ],
+          [
+            23.563636363636366,
+            10.490909090909087
+          ],
+          [
+            23.563636363636366,
+            13.327272727272724
+          ],
+          [
+            21.81818181818182,
+            13.327272727272724
+          ]
+        ],
+        "count": 10,
+        "profile": "standing"
+      }
+    ]
+  },
+  "params": {
+    "walk_speed": 1.2,
+    "T": 60.0,
+    "dt": 0.08,
+    "jam_density": 4.0
+  },
+  "variable_parameters": [
+    {
+      "name": "南出口宽度",
+      "type": "exit_width",
+      "target_id": "E1",
+      "unit": "m",
+      "allowed_range": [
+        4,
+        8
+      ],
+      "current_value": 6,
+      "scene_diff": [
+        {
+          "exit_id": "E1",
+          "width": 6
+        }
+      ]
+    },
+    {
+      "name": "展台中心横坐标",
+      "type": "facility_center_x",
+      "target_id": "F1",
+      "unit": "m",
+      "allowed_range": [
+        15.25,
+        21.75
+      ],
+      "current_value": 15.25,
+      "scene_diff": [
+        {
+          "facility_id": "F1",
+          "center": [
+            15.25,
+            5
+          ]
+        }
+      ]
+    }
+  ]
+}
