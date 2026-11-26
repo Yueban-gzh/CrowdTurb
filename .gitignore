@@ -20,6 +20,8 @@ coverage/
 
 # Runtime and experiment outputs (keep small curated fixtures in examples)
 data/
+# B 的可视化演示数据（A 场景转换 + Mock 轨迹/分析，小型合成样例）
+!apps/web/prototype/data/
 runs/
 artifacts/
 output/
@@ -38,3 +40,7 @@ checkpoints/
 .DS_Store
 Thumbs.db
 ~$*
+
+# Local IDE/tool state (CodeArts Doer)
+.arts/
+.codeartsdoer/
