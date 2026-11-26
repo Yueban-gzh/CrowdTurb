@@ -106,8 +106,40 @@ try {
   const manifest = await (await page.request.get(baselineURL)).json();
   const scene = await (await page.request.get(manifest.artifacts.scene)).json();
   assert.equal(scene.exits[0].width_m, 6.1);
+
+  // Edit a real passage, then verify the saved scene and both geometry producers.
+  await page.getByRole("button", {name: "布局编辑"}).click();
+  const passage = editor.getByRole("spinbutton", {name: "P1 通道净宽（m）"});
+  const beforeMask = await editor.locator("#passageBox").evaluate(() => Array.from(rasterize().walk));
+  await passage.fill("6");
+  await passage.press("Tab");
+  const editedMask = await editor.locator("#passageBox").evaluate(() => Array.from(rasterize().walk));
+  assert.notDeepEqual(editedMask, beforeMask, "passage width must change the editor geometry");
+  await page.locator("#parameter").selectOption(JSON.stringify({type: "passage_width", target_id: "P1"}));
+  const passageQueued = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === "/api/workbench/runs" && response.request().method() === "POST");
+  await page.getByRole("button", {name: "评估当前布局"}).click();
+  const passageResponse = await passageQueued;
+  assert.equal(passageResponse.status(), 202);
+  const passageRun = (await passageResponse.json()).run;
+  await page.waitForURL(`**/?run=${passageRun.run_id}`);
+  await page.getByRole("heading", {name: "Mock 评估完成"}).waitFor();
+  const passageSaved = await (await page.request.get(`/api/workbench/runs/${passageRun.run_id}`)).json();
+  assert.equal(passageSaved.scene.geometry.passages[0].width, 6);
+  const passageView = await (await page.request.get(`/api/workbench/runs/${passageRun.run_id}/views/baseline/scene`)).json();
+  assert.deepEqual(passageView.walkable.flat().map(Number), editedMask, "Python and browser must use the same passage mask");
+  await page.reload();
+  await page.getByRole("heading", {name: "Mock 评估完成"}).waitFor();
+  await page.getByRole("button", {name: "布局编辑"}).click();
+  assert.equal(await editor.getByRole("spinbutton", {name: "P1 通道净宽（m）"}).inputValue(), "6");
+  await editor.locator("#fileIn").setInputFiles({
+    name: "passage-scene.json", mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(passageSaved.scene)),
+  });
+  await editor.getByText("已加载 passage-scene.json，请重新校验。", {exact: true}).waitFor();
+  assert.equal(await editor.getByRole("spinbutton", {name: "P1 通道净宽（m）"}).inputValue(), "6");
   assert.deepEqual(pageErrors, []);
-  console.log("PASS: edit, queue, reload, D comparison, B playback and synchronized 2D comparison");
+  console.log("PASS: exit/passage edit, identical JS/Python masks, queue, reload, D comparison, B playback and synchronized 2D comparison");
 } catch (error) {
   console.error(logs);
   throw error;

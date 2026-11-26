@@ -1,6 +1,6 @@
 {
   "project": "CrowdTurb",
-  "baseline": "2026-11-25 user-approved STDDN direction; consumer integration pending",
+  "baseline": "2026-11-25 user-approved STDDN direction; 2026-11-27 D/E integration pending team review",
   "items": [
     {
       "requirement_id": "REQ-01",
@@ -8,8 +8,10 @@
       "verification_ids": [
         "VT-01"
       ],
-      "status": "planned",
-      "evidence": []
+      "status": "in_progress",
+      "evidence": [
+        "docs/evidence/2026-11-27-DE-integration.md"
+      ]
     },
     {
       "requirement_id": "REQ-02",
@@ -26,8 +28,10 @@
       "verification_ids": [
         "VT-03"
       ],
-      "status": "planned",
-      "evidence": []
+      "status": "in_progress",
+      "evidence": [
+        "docs/evidence/2026-11-27-DE-integration.md"
+      ]
     },
     {
       "requirement_id": "REQ-04",
@@ -38,7 +42,8 @@
       "status": "in_progress",
       "evidence": [
         "docs/evidence/2026-11-25-D-analysis-passage.md",
-        "docs/evidence/2026-11-25-D-sampling-comparison.md"
+        "docs/evidence/2026-11-25-D-sampling-comparison.md",
+        "docs/evidence/2026-11-27-DE-integration.md"
       ]
     },
     {
@@ -50,7 +55,8 @@
       "status": "in_progress",
       "evidence": [
         "docs/evidence/2026-11-25-D-analysis-passage.md",
-        "docs/evidence/2026-11-25-D-sampling-comparison.md"
+        "docs/evidence/2026-11-25-D-sampling-comparison.md",
+        "docs/evidence/2026-11-27-DE-integration.md"
       ]
     },
     {
@@ -63,7 +69,8 @@
       "status": "in_progress",
       "evidence": [
         "docs/evidence/2026-11-20-system-base.md",
-        "docs/evidence/2026-11-26-e-first-review.md"
+        "docs/evidence/2026-11-26-e-first-review.md",
+        "docs/evidence/2026-11-27-DE-integration.md"
       ]
     },
     {
@@ -94,7 +101,8 @@
       "status": "in_progress",
       "evidence": [
         "docs/evidence/2026-11-20-system-base.md",
-        "docs/evidence/2026-11-26-e-first-review.md"
+        "docs/evidence/2026-11-26-e-first-review.md",
+        "docs/evidence/2026-11-27-DE-integration.md"
       ]
     },
     {

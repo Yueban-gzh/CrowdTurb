@@ -14,13 +14,8 @@ from .trajectory_mock import SimulationInput, initial_agents, simulate_mock
 
 def initial_scene(team_root: Path) -> dict:
     scene = load_json(team_root / "apps/web/scene-config/scenes/passage_optimization_example.json")
-    scene["version"] = "0.2"
     scene["meta"]["name"] = "单层展厅"
-    scene["meta"]["notes"] = "出口与展台编辑、栅格转换和单层人流评估。"
-    scene["geometry"].pop("passages")
-    scene["variable_parameters"] = [
-        variable for variable in scene["variable_parameters"] if variable["type"] != "passage_width"
-    ]
+    scene["meta"]["notes"] = "出口、通道净宽与展台编辑、栅格转换和单层人流评估。"
     scene["crowd"]["zones"][0]["count"] = 2
     return scene
 

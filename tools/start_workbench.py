@@ -1,46 +1,15 @@
-"""Prepare the pinned team versions and start the local integration workbench."""
+"""Prepare the viewer from this checkout and start the integrated workbench."""
 
 import argparse
 import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
-from urllib.request import urlopen
-from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from apps.api.crowdturb.team_assets import B_FILES, viewer_page, viewer_script
-
-D_REVISION = "769b196ae2eecd9c1b51c85d535571a2c2f9d791"
-B_REVISION = "2cf04544c6e535fccb5f103687f10d6ee45d5f1c"
-
-
-def snapshot(revision, expected_file):
-    cache = ROOT / "output"
-    cache.mkdir(exist_ok=True)
-    target = cache / f"CrowdTurb-{revision}"
-    if (target / expected_file).is_file():
-        return target
-    if target.exists():
-        raise ValueError(f"快照目录不完整，请移走后重试：{target}")
-
-    with tempfile.TemporaryDirectory(dir=cache) as directory:
-        staging = Path(directory)
-        archive = staging / "team.zip"
-        url = f"https://codeload.github.com/Yueban-gzh/CrowdTurb/zip/{revision}"
-        print(f"获取团队版本 {revision[:7]}", file=sys.stderr, flush=True)
-        with urlopen(url, timeout=40) as response, archive.open("wb") as output:
-            shutil.copyfileobj(response, output)
-        with ZipFile(archive) as source:
-            source.extractall(staging)
-        unpacked = staging / target.name
-        if not (unpacked / expected_file).is_file():
-            raise ValueError(f"团队版本缺少 {expected_file}")
-        unpacked.rename(target)
-    return target
 
 
 def prepare_viewer(source_root):
@@ -77,10 +46,12 @@ def main():
                 raise ValueError(f"找不到本地 ONNX 文件：{args.onnx_model}")
             import onnxruntime
 
-        team = snapshot(D_REVISION, "tools/run_analysis.py")
-        viewer = args.native_viewer.resolve() if args.native_viewer else prepare_viewer(
-            snapshot(B_REVISION, "apps/web/prototype/main.js")
-        )
+        team = ROOT
+        for relative in ("packages/analysis/crowdturb_analysis/core.py",
+                         "apps/web/scene-config/python/scene_io.py"):
+            if not (team / relative).is_file():
+                raise ValueError(f"当前仓库缺少模块：{relative}")
+        viewer = args.native_viewer.resolve() if args.native_viewer else prepare_viewer(ROOT)
         if not (viewer / "apps/web/prototype/index.html").is_file():
             raise ValueError(f"B 页面缺失：{viewer}")
     except ImportError as error:

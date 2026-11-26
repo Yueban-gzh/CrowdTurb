@@ -2,6 +2,8 @@
 
 E 提供布局任务和回放加载接口。本地联调已用 C 提供的 ONNX 文件生成轨迹，由 B 回放并交给 D 分析。单层轨迹、场和分析继续使用 D 当前版本的契约。
 
+2026-11-27 D/E 接入：默认启动直接使用当前仓库 A/B/D 源码，保留 A-local `0.3` 的通道与参数声明。编辑器可修改已有通道的净宽，新增通道的中心、方向和预留包络仍通过场景 JSON 配置。通道两侧隔挡进入同一个 walkable/obstacle_mask，后端最终几何校验不被前端校验替代。集成证据见 [D/E 回归](evidence/2026-11-27-DE-integration.md)。
+
 ## B 按运行加载
 
 入口通过查询参数传入 `run` 和 `view`，例如 `?run=preview-…&view=baseline`。基准方案键为 `baseline`，其他方案键由该运行的 `views` 列出。
@@ -11,6 +13,8 @@ E 提供布局任务和回放加载接口。本地联调已用 C 提供的 ONNX 
 3. 从 `artifacts` 读取 `scene`、`trajectory`、`field` 和 `analysis`。依次用于几何与出口、逐人回放、D 聚合热力及指标。新 ONNX 运行还可提供 `route`，其中 `points_m` 是从一名代表性行人的起始位置到出口的规划线点列，用于 2D 虚线。B 可复用 [ES 模块加载器](../apps/web/workbench-api.js) 的 `loadWorkbenchView(run, view)`。
 
 运行创建接口 `POST /api/workbench/runs` 接收 `scene` 和可选的 `parameter`。例如 `{"type":"facility_center_x","target_id":"F1"}` 表示只生成 F1 横向位置候选，绑定需存在于该场景的 `variable_parameters`。省略时沿用自动选择。接口返回 202 与已保存的 `run_id`，详情状态为 `queued`、`running`、`succeeded` 或 `failed`。失败记录含 `error.code` 与 `error.message`。服务重启时，遗留的评估标记为中断失败。
+
+通道评估传 `{"type":"passage_width","target_id":"P1"}`；界面「评估参数」也可选择该声明。采样取自场景的 allowed_range，几何与预算检查仍由 A/D 执行。实际 ONNX 每次最多求解一个预算内合法候选，其他候选保留未评价状态；比较结果可能持平或保留基准，不能把 Mock 推荐作为优化证据。
 
 ## C 的替换点
 
