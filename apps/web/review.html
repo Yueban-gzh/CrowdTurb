@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CrowdTurb · 首轮联调验收</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/review.js" defer></script>
+  </head>
+  <body>
+    <main class="main">
+      <p><a href="/">返回系统入口</a></p>
+      <h1>首轮 Mock 联调验收</h1>
+      <p>回放和比较来自 D 的两套独立合成场景。保存后可按运行编号重新打开。</p>
+      <section class="panel">
+        <h2>联调记录</h2>
+        <p class="panel-actions">
+          <button id="import-playback" class="button button--primary">保存轨迹与分析样例</button>
+          <button id="import-comparison" class="button button--secondary">保存比较样例</button>
+        </p>
+        <p id="review-status" role="status"></p>
+        <ul id="review-runs"></ul>
+      </section>
+      <section class="panel panel--result" id="review-detail" hidden>
+        <h2 id="review-title"></h2>
+        <dl id="review-metadata"></dl>
+        <ul id="review-artifacts"></ul>
+        <h3>样例摘要</h3>
+        <ul id="review-summary"></ul>
+      </section>
+    </main>
+  </body>
+</html>

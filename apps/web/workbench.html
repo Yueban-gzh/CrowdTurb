@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>流构 · 人流仿真与建筑布局优化</title>
+  <link rel="stylesheet" href="/workbench.css">
+  <script src="/workbench.js" defer></script>
+</head>
+<body class="workbench">
+  <header class="top">
+    <a class="brand" href="/" aria-label="流构首页"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>流构</a>
+    <span class="workspace-name">CrowdTurb 工作台</span>
+    <span class="source">Mock 演示</span>
+  </header>
+  <main>
+    <section class="heading">
+      <div class="heading-copy">
+        <h1>人流仿真与建筑布局优化</h1>
+        <p class="purpose">调整出口与设施，查看人流热点，比较改造方案。</p>
+      </div>
+      <div class="heading-action">
+        <p id="scene-facts" class="subtitle"></p>
+        <button id="run" class="primary" disabled>评估当前布局 <span aria-hidden="true">↗</span></button>
+      </div>
+    </section>
+    <div class="workspace">
+      <section class="stage" aria-label="场景工作区">
+        <nav class="tabs" aria-label="工作区">
+          <button data-tab="edit" aria-pressed="true">布局编辑</button>
+          <button data-tab="view" aria-pressed="false" disabled>人流与热点</button>
+          <button data-tab="compare" aria-pressed="false" disabled>方案比较</button>
+        </nav>
+        <div id="edit">
+          <iframe id="editor" title="A 场景编辑器"></iframe>
+        </div>
+        <div id="view" hidden>
+          <div class="view-bar">
+            <label class="select-view">回放方案 <select id="view-choice"></select></label>
+            <span>合成轨迹 · 密度热力</span>
+          </div>
+          <iframe id="viewer" title="B 三维回放与热力"></iframe>
+        </div>
+        <section id="compare" class="comparison" hidden>
+          <div class="comparison-heading">
+            <div>
+              <h2>候选方案</h2>
+              <p id="comparison-note">比较基于合成轨迹。</p>
+            </div>
+            <label>筛选 <select id="candidate-filter">
+              <option value="all">全部方案</option>
+              <option value="improved">改善方案</option>
+              <option value="attention">待处理方案</option>
+            </select></label>
+          </div>
+          <ul id="candidates"></ul>
+        </section>
+      </section>
+      <aside>
+        <section class="panel">
+          <p class="eyebrow"><span id="run-indicator" aria-hidden="true"></span>当前运行</p>
+          <h2 id="status-title">可编辑场景</h2>
+          <p id="status" role="status">正在载入编辑器。</p>
+          <section id="metric-panel" class="metric-panel" hidden>
+            <h3>基准指标</h3>
+            <div id="metrics" class="metrics"></div>
+          </section>
+          <p id="revision" class="revision" hidden></p>
+        </section>
+        <section class="panel history">
+          <h2>运行记录</h2>
+          <p id="history-empty">运行预演后可在这里重开结果。</p>
+          <ul id="runs"></ul>
+        </section>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

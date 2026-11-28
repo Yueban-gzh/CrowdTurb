@@ -24,6 +24,7 @@ data/
 !apps/web/prototype/data/
 runs/
 artifacts/
+output/
 checkpoints/
 *.pt
 *.pth

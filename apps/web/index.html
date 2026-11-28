@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>CrowdTurb · 系统底座</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="CrowdTurb 首页">
+          <span class="brand-mark" aria-hidden="true">CT</span>
+          <span>
+            <strong>CrowdTurb</strong>
+            <small>连续人流 · 布局优化</small>
+          </span>
+        </a>
+        <div class="topbar-meta">
+          <span class="mode-badge">E · 系统底座</span>
+          <span class="mode-badge mode-badge--mock">W1 Mock 联调</span>
+          <span id="service-state" class="service-state" aria-live="polite">连接中…</span>
+        </div>
+      </header>
+
+      <aside class="sidebar">
+        <div class="sidebar-heading">
+          <div>
+            <p class="eyebrow">Projects</p>
+            <h2>项目空间</h2>
+          </div>
+          <button id="new-project" class="icon-button" type="button" title="新建项目">＋</button>
+        </div>
+        <div id="project-list" class="project-list" aria-live="polite"></div>
+        <div class="source-note">
+          <strong>数据诚实提示</strong>
+          <p>当前结果来自手工 Mock。它不是 PDE / FNO 结果，也不能用于真实疏散判断。</p>
+        </div>
+        <div class="sidebar-footer">
+          <span>契约版本 0.1.0</span>
+          <span>SQLite 持久化</span>
+        </div>
+      </aside>
+
+      <main class="main">
+        <p><a href="/review">打开首轮 Mock 联调验收</a></p>
+        <section class="hero">
+          <div>
+            <p class="eyebrow">Unified system shell</p>
+            <h1>把配置、计算、展示与分析接到同一条任务链上</h1>
+            <p class="hero-copy">本页只负责统一入口、场景版本、任务状态与结果保存。A–D 的核心能力通过明确插槽接入，不在这里重写。</p>
+          </div>
+          <div class="hero-facts">
+            <div><span>当前项目</span><strong id="hero-project">—</strong></div>
+            <div><span>场景版本</span><strong id="hero-scene">—</strong></div>
+            <div><span>最近任务</span><strong id="hero-task">—</strong></div>
+          </div>
+        </section>
+
+        <section class="flow" aria-label="产品主流程">
+          <article class="flow-step is-ready" data-step="config">
+            <span class="flow-index">01</span>
+            <div><strong>配置</strong><small>A · 场景模型</small></div>
+            <span class="flow-state">Mock 可用</span>
+          </article>
+          <article class="flow-step" data-step="compute">
+            <span class="flow-index">02</span>
+            <div><strong>计算</strong><small>C · PDE / FNO</small></div>
+            <span class="flow-state">Mock 调度可用</span>
+          </article>
+          <article class="flow-step is-pending" data-step="view">
+            <span class="flow-index">03</span>
+            <div><strong>展示</strong><small>B · 3D / 俯视</small></div>
+            <span class="flow-state">待接入</span>
+          </article>
+          <article class="flow-step is-pending" data-step="analysis">
+            <span class="flow-index">04</span>
+            <div><strong>诊断</strong><small>D · 指标</small></div>
+            <span class="flow-state">待接入</span>
+          </article>
+          <article class="flow-step is-pending" data-step="optimize">
+            <span class="flow-index">05</span>
+            <div><strong>优化</strong><small>D / E · 候选调度</small></div>
+            <span class="flow-state">待接入</span>
+          </article>
+          <article class="flow-step is-pending" data-step="compare">
+            <span class="flow-index">06</span>
+            <div><strong>对比</strong><small>B / D · A-B</small></div>
+            <span class="flow-state">待接入</span>
+          </article>
+        </section>
+
+        <div class="workspace-grid">
+          <section class="panel panel--scene">
+            <header class="panel-heading">
+              <div>
+                <p class="eyebrow">Step 01 · A/E boundary</p>
+                <h2>场景版本</h2>
+              </div>
+              <span id="scene-revision" class="tag">revision —</span>
+            </header>
+            <p class="panel-copy">编辑器是 A 的接入点。E 负责校验、版本号递增、保存与重新读取；页面不会悄悄修改计算结果。</p>
+            <label class="field-label" for="scene-editor">场景 JSON</label>
+            <textarea id="scene-editor" class="code-editor" spellcheck="false" aria-describedby="scene-hint"></textarea>
+            <div class="panel-actions">
+              <button id="save-scene" class="button button--secondary" type="button">保存为新版本</button>
+              <span id="scene-hint" class="inline-hint">scene_id 保持不变，revision 由服务端生成。</span>
+            </div>
+          </section>
+
+          <section class="panel panel--tasks">
+            <header class="panel-heading">
+              <div>
+                <p class="eyebrow">Step 02 · C/E boundary</p>
+                <h2>计算任务</h2>
+              </div>
+              <span id="adapter-state" class="tag tag--warm">Mock only</span>
+            </header>
+            <p class="panel-copy">任务按 <code>queued → running → succeeded / failed</code> 流转。C 提供求解器后，只替换服务端适配器。</p>
+            <div class="run-row">
+              <label class="field-label" for="task-source">结果来源</label>
+              <select id="task-source">
+                <option value="mock">Mock 联调（已接入）</option>
+                <option value="pde">PDE（等待 C）</option>
+                <option value="fno">FNO（等待 C）</option>
+              </select>
+              <button id="run-task" class="button button--primary" type="button">运行任务</button>
+            </div>
+            <div id="task-feed" class="task-feed" aria-live="polite"></div>
+          </section>
+        </div>
+
+        <section class="panel panel--result">
+          <header class="panel-heading">
+            <div>
+              <p class="eyebrow">Result handoff</p>
+              <h2>结果交接</h2>
+            </div>
+            <span id="result-state" class="tag">尚无结果</span>
+          </header>
+          <p class="panel-copy">这里展示系统可交付给 B / D 的连续场元数据与原始 JSON。可视化、指标和候选比较不在此面板中实现。</p>
+          <div id="result-summary" class="result-summary"></div>
+          <div id="module-slots" class="module-slots">
+            <div class="module-slot" id="view-slot"><span>B</span><strong>3D / 俯视</strong><small>读取 field result 与 scene</small></div>
+            <div class="module-slot" id="analysis-slot"><span>D</span><strong>拥堵诊断</strong><small>读取 field result，输出指标</small></div>
+            <div class="module-slot" id="optimize-slot"><span>D/E</span><strong>候选优化</strong><small>通过任务接口执行与保存</small></div>
+            <div class="module-slot" id="compare-slot"><span>B/D</span><strong>同条件对比</strong><small>组合两个场景版本与结果</small></div>
+          </div>
+          <details class="raw-result">
+            <summary>查看原始结果 JSON</summary>
+            <pre id="result-json">运行 Mock 任务后在此查看。</pre>
+          </details>
+        </section>
+
+        <footer class="page-footer">
+          <span>CrowdTurb · 智能软件工程课程项目</span>
+          <span>W1 系统底座验证页 · 结果不构成真实疏散安全结论</span>
+        </footer>
+      </main>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
