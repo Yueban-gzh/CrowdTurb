@@ -38,3 +38,14 @@
 - 提交者审查重点：契约兼容、失败状态是否正确、重启后状态是否诚实、页面是否存在越权实现、测试是否覆盖成功与失败路径。
 - 实际验证：仓库检查、11 项契约测试、8 项系统测试、Python / JavaScript 语法检查和本地浏览器交互（PDE 失败、Mock 成功、结果展示）；具体命令与结果见 [系统底座验证记录](../evidence/2026-11-20-system-base.md)。
 - 当前状态：实现待 A-D / 团队评审；REQ-06 与 NFR-02 仍为 `in_progress`，不能因为 AI 生成代码而标记已验收。
+
+## 2026-11-25 · B 可视化原型与 A/C/D 数据接入
+
+- 关联任务：BOOT-03、REQ-03、NFR-04；B 模块（PR #5，已合并）。
+- 使用工具：ZCode 编码代理会话（多轮迭代，含浏览器实测反馈循环）。
+- 输入材料：仓库数据契约（scene / field-result schema）、Mock 样例、需求与计划文档、C 提供的 STDDN ONNX 接口说明、A 分支的场景样例与栅格化代码、D 分支的 trajectory / analysis 契约与样例。
+- 主要输出：`apps/web/prototype/` 的 3D 场馆、2D 俯视、热力面、时间轴、契约校验、方向自检；`adapters.js` 数据适配层（W1 旧格式 / A scene-bundle / C trajectory / D analysis 四种来源）；`tools/export_scene_bundle.py` 与 `tools/make_demo_trajectory.py` 两个数据工具。
+- 采用的 AI 建议：表现层与数据格式解耦（适配器模式）；大网格按连续段合并 Mesh 与分层降采样；稳健分位数色标 + 平方根映射；最近帧采样替代逐帧插值以消除 GC 卡顿。
+- 提交者审查重点：坐标轴映射（`[iy][ix]`、左下角原点、y 向上）、Mock / 真实来源区分与免责标注、降采样后出口与热点坐标换算（曾出现出口未标绿、热点越界两类 bug，已修复）、轨迹数据的诚实标注。
+- 实际验证：`tools/check_repository.py` 全 PASS；`tests/contracts` 11 项 OK；浏览器实测（体育馆 120×80、45 帧、317 采样人：方向自检 6540/6540 = 100%；连续播放 27 秒无卡死；干净克隆复测通过）。
+- 当前状态：代码已随 PR #5 合并进 main 并由 E 集成进工作台；团队评审与 Friday MVP 演示待完成；无真实 PDE / FNO / STDDN 结果，全部演示数据为 source=mock 合成数据。

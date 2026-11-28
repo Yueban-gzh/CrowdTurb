@@ -288,7 +288,7 @@ function densityColor(d, dMax) {
 // 3D 场景（表现层 v2：半透明玻璃壳 + 平滑热力面 + 密度着色粒子）
 // ---------------------------------------------------------------------------
 
-function makeExitLabel(text) {
+function makeExitLabel(text, scale = 2.2) {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 64;
@@ -303,14 +303,14 @@ function makeExitLabel(text) {
   ctx.roundRect(6, 10, 244, 44, 22);
   ctx.stroke();
   ctx.fillStyle = '#8ff0cd';
-  ctx.font = '600 22px "Microsoft YaHei", sans-serif';
+  ctx.font = '600 34px "Microsoft YaHei", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, 128, 33);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, toneMapped: false }));
-  sprite.scale.set(1.6, 0.4, 1);
+  sprite.scale.set(scale, scale * 0.25, 1);
   return sprite;
 }
 
@@ -388,6 +388,7 @@ function updateHeatSurface(mesh, scene, density, dMax) {
 
 function buildStaticStructure(scene, root, exitCells) {
   const { nx, ny, dx, dy, origin } = scene.grid;
+  const maxDim = Math.max(nx * dx, ny * dy);
   const wallH = 1.8;
 
   // 地面（接收阴影）
@@ -563,7 +564,8 @@ function buildStaticStructure(scene, root, exitCells) {
         root.add(panel);
       }
     }
-    const label = makeExitLabel(exit.exitId);
+    // 标签尺寸随场馆缩放：约 9% 场馆长边，保证小展厅和大体育馆都易读
+    const label = makeExitLabel(exit.exitId, Math.max(2.6, maxDim * 0.09));
     label.position.set(sx / exit.cells.length, 2.1, -(sy / exit.cells.length));
     root.add(label);
   }
@@ -623,29 +625,41 @@ function createParticles(scene) {
 // 轨迹回放：按时间在相邻两帧之间线性插值每个 agent 的位置。
 // 性能要点（曾导致页面卡死）：
 //   · id → 帧内索引的映射在初始化时预建，不在每帧 new Map
-//   · 位置数组复用，不产生临时对象
-function createTrajectoryPoints(playback, colorHex, pointSize = 0.16) {
+//   · 实例矩阵复用，不产生临时对象
+function createTrajectoryFigures(playback) {
   const frames = playback.frames;
   const maxAgents = frames.reduce((m, f) => Math.max(m, f.agents.length), 0);
-  const positions = new Float32Array(Math.max(maxAgents, 1) * 3);
-  const geometry = new THREE.BufferGeometry();
-  const posAttr = new THREE.BufferAttribute(positions, 3);
-  posAttr.setUsage(THREE.DynamicDrawUsage);
-  geometry.setAttribute('position', posAttr);
-  geometry.setDrawRange(0, 0);
-  const material = new THREE.PointsMaterial({
-    map: makeCircleTexture(),
-    color: colorHex,
-    size: pointSize,
-    sizeAttenuation: true,
-    transparent: true,
-    opacity: 1,
-    alphaTest: 0.08,
-    depthWrite: false,
-    depthTest: false,      // 始终绘制在热力面之上
-    toneMapped: false,
+
+  // 人形 = 旋转成型的身体（下身收细的简化人体轮廓）+ 顶上圆球头，
+  // 真实比例约 1.3 m，与 1.8 m 墙高成比例；无走路动画，沿地面滑动（与演示视频一致）
+  const profile = [
+    [0.00, 0.00],
+    [0.12, 0.02],   // 底部收边
+    [0.13, 0.30],   // 腿部（下身细）
+    [0.17, 0.55],   // 臀部
+    [0.21, 0.80],   // 躯干最宽处
+    [0.19, 1.00],   // 肩部
+    [0.08, 1.12],   // 颈部
+    [0.02, 1.16],   // 颈顶闭合
+  ];
+  const bodyGeo = new THREE.LatheGeometry(
+    profile.map(([x, y]) => new THREE.Vector2(x, y)), 14);
+  const headGeo = new THREE.SphereGeometry(0.14, 10, 8);
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xf2ede2,          // 暖白：在蓝/黄/红热力底色上都有明度对比
+    roughness: 0.5,
+    metalness: 0.05,
+    emissive: 0x55503f,       // 自发光提亮，避免被热力色吞掉
+    emissiveIntensity: 0.45,
   });
-  const points = new THREE.Points(geometry, material);
+  const bodyMesh = new THREE.InstancedMesh(bodyGeo, material, Math.max(maxAgents, 1));
+  const headMesh = new THREE.InstancedMesh(headGeo, material, Math.max(maxAgents, 1));
+  for (const mesh of [bodyMesh, headMesh]) {
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    mesh.castShadow = true;
+    mesh.count = 0;
+    mesh.frustumCulled = false;
+  }
 
   // 每帧预建 id → agent 索引（只建一次）
   const idIndexPerFrame = frames.map((f) => {
@@ -654,12 +668,14 @@ function createTrajectoryPoints(playback, colorHex, pointSize = 0.16) {
     return m;
   });
 
-  return { points, positions, posAttr, maxAgents, count: 0, frames, idIndexPerFrame };
+  const dummy = new THREE.Object3D();
+  const headY = 1.26;          // 头心略嵌入颈部，衔接自然
+  return { bodyMesh, headMesh, dummy, maxAgents, count: 0, frames, idIndexPerFrame, headY };
 }
 
-// 在 playback.frames 上采样 t 时刻的全部个体位置，写入复用的 positions
-function updateTrajectoryPoints(holder, timeS) {
-  const { frames, idIndexPerFrame, positions } = holder;
+// 在 playback.frames 上采样 t 时刻的全部个体位置，写入实例矩阵（身体 + 头同步）
+function updateTrajectoryFigures(holder, timeS) {
+  const { frames, idIndexPerFrame, dummy, bodyMesh, headMesh } = holder;
   let n = 0;
   if (frames.length > 0) {
     let k = 0;
@@ -677,14 +693,19 @@ function updateTrajectoryPoints(holder, timeS) {
       const j = hiIndex.get(agent.id);
       const x = j === undefined ? agent.x : agent.x + (hiAgents[j].x - agent.x) * a;
       const y = j === undefined ? agent.y : agent.y + (hiAgents[j].y - agent.y) * a;
-      positions[n * 3] = x;
-      positions[n * 3 + 1] = 0.55;
-      positions[n * 3 + 2] = -y;
+      dummy.position.set(x, 0, -y);          // 轮廓几何从脚底 y=0 开始
+      dummy.updateMatrix();
+      bodyMesh.setMatrixAt(n, dummy.matrix);
+      dummy.position.set(x, holder.headY, -y);
+      dummy.updateMatrix();
+      headMesh.setMatrixAt(n, dummy.matrix);
       n++;
     }
   }
-  holder.points.geometry.setDrawRange(0, n);
-  holder.posAttr.needsUpdate = true;
+  bodyMesh.count = n;
+  headMesh.count = n;
+  bodyMesh.instanceMatrix.needsUpdate = true;
+  headMesh.instanceMatrix.needsUpdate = true;
   holder.count = n;
 }
 
@@ -1020,12 +1041,17 @@ function directionSelfCheck(scene, playback) {
 // 原则：B 只显示，不重算；来源与状态逐项标注（NFR-04）
 // ---------------------------------------------------------------------------
 
+// 分析面板 UI 状态：时间序列折线图在这里登记，
+// 播放时按当前 t 重绘“当前值标记”（D 的 previous_sample 口径）
+const analysisUi = { sparklines: [] };
+
 function renderAnalysisPanel(scene, analysis) {
   const body = document.getElementById('analysis-body');
   const srcBadge = document.getElementById('analysis-source');
   if (!body) return;
 
   if (!srcBadge) return;
+  analysisUi.sparklines = [];
   if (!analysis.available) {
     srcBadge.textContent = '无分析结果';
     srcBadge.className = 'status-badge warn';
@@ -1112,7 +1138,8 @@ function escapeHtml(s) {
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// 迷你折线图：纯 Canvas，不引第三方图表库
+// 迷你折线图：纯 Canvas，不引第三方图表库。
+// 只画一次基础内容；时间标记由 updateAnalysisTimeMarker 在播放时叠加。
 function makeSparkline(series) {
   const W = 280;
   const H = 46;
@@ -1122,9 +1149,25 @@ function makeSparkline(series) {
   canvas.className = 'sparkline';
   const ctx = canvas.getContext('2d');
 
-  const ts = series.timeS;
-  const vs = series.values;
-  if (ts.length < 2) return canvas;
+  const holder = {
+    canvas,
+    ts: series.timeS.slice(),
+    vs: series.values.slice(),
+    unit: series.unit,
+    markerX: null,
+  };
+  analysisUi.sparklines.push(holder);
+  drawSparkline(holder, null);
+  return canvas;
+}
+
+function drawSparkline(holder, markerTimeS) {
+  const { canvas, ts, vs } = holder;
+  const W = canvas.width;
+  const H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  if (ts.length < 2) return;
   const t0 = ts[0];
   const t1 = ts[ts.length - 1];
   const vMax = Math.max(...vs, 1e-9);
@@ -1153,7 +1196,34 @@ function makeSparkline(series) {
   ctx.font = '10px ui-monospace, monospace';
   ctx.textAlign = 'right';
   ctx.fillText(String(vMax), W - 4, 10);
-  return canvas;
+
+  // 当前播放时刻标记（D 口径 previous_sample：取最后一个 ≤ t 的采样值）
+  if (markerTimeS !== null && markerTimeS !== undefined) {
+    const t = Math.min(Math.max(markerTimeS, t0), t1);
+    let idx = 0;
+    for (let i = 0; i < ts.length; i++) if (ts[i] <= t) idx = i;
+    const x = xOf(t);
+    const y = yOf(vs[idx]);
+    ctx.strokeStyle = 'rgba(245, 176, 76, 0.95)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x, 3);
+    ctx.lineTo(x, H - 6);
+    ctx.stroke();
+    ctx.fillStyle = '#f5b04c';
+    ctx.beginPath();
+    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f5b04c';
+    ctx.font = '10px ui-monospace, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`t=${t.toFixed(1)}s`, 3, 10);
+  }
+}
+
+// 播放/拖动时间轴时更新所有序列的当前值标记（analysis 可用时）
+function updateAnalysisTimeMarker(timeS) {
+  for (const holder of analysisUi.sparklines) drawSparkline(holder, timeS);
 }
 
 // ---------------------------------------------------------------------------
@@ -1428,11 +1498,14 @@ function init3d(scene, playback, fieldForHeat, dMax, analysis) {
 
   // 轨迹模式：真实个体点（C 输出的逐人位置，不是示意粒子）
   // 点大小按场馆尺寸缩放（约 1.5% 场馆长边），保证 4m 小馆到 60m 体育馆都看得清
-  const trajPointSize = Math.max(0.2, maxDim * 0.015);
-  const trajectoryPoints = playback.kind === 'trajectory'
-    ? createTrajectoryPoints(playback, 0x8ff0cd, trajPointSize)
+  // 轨迹模式：真实个体以 3D 人形（胶囊）沿地面滑动展示（参考演示视频）
+  const trajectoryFigures = playback.kind === 'trajectory'
+    ? createTrajectoryFigures(playback)
     : null;
-  if (trajectoryPoints) sceneRoot.add(trajectoryPoints.points);
+  if (trajectoryFigures) {
+    sceneRoot.add(trajectoryFigures.bodyMesh);
+    sceneRoot.add(trajectoryFigures.headMesh);
+  }
 
   // --- 视角切换 ---
   let camTween = null; // { fromPos, toPos, fromTarget, toTarget, start, dur }
@@ -1570,8 +1643,8 @@ function init3d(scene, playback, fieldForHeat, dMax, analysis) {
     // 只更新当前可见视图，避免隐藏视图做无用功
     if (activeView === '3d') {
       updateHeatSurface(heat, sceneHeat, sampleHeat.density, dMax);
-      if (trajectoryPoints) {
-        updateTrajectoryPoints(trajectoryPoints, tau);
+      if (trajectoryFigures) {
+        updateTrajectoryFigures(trajectoryFigures, tau);
       } else if (playing) {
         updateParticles(particles, scene, sample2d.density, sample2d.velocity, dMax, dt * speed);
       }
@@ -1598,6 +1671,7 @@ function init3d(scene, playback, fieldForHeat, dMax, analysis) {
     }
 
     timeLabel.textContent = `t = ${tau.toFixed(2)} s`;
+    if (analysis && analysis.available) updateAnalysisTimeMarker(tau);
     if (hover && activeView === '2d') {
       // 悬停读数对应 2D 视图实际显示的数据（细网格），不是 3D 的聚合结果
       const [vx, vy] = sample2d.velocity[hover.iy][hover.ix];
