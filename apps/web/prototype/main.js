@@ -288,7 +288,7 @@ function densityColor(d, dMax) {
 // 3D 场景（表现层 v2：半透明玻璃壳 + 平滑热力面 + 密度着色粒子）
 // ---------------------------------------------------------------------------
 
-function makeExitLabel(text) {
+function makeExitLabel(text, scale = 2.2) {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 64;
@@ -303,14 +303,14 @@ function makeExitLabel(text) {
   ctx.roundRect(6, 10, 244, 44, 22);
   ctx.stroke();
   ctx.fillStyle = '#8ff0cd';
-  ctx.font = '600 22px "Microsoft YaHei", sans-serif';
+  ctx.font = '600 34px "Microsoft YaHei", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, 128, 33);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, toneMapped: false }));
-  sprite.scale.set(1.6, 0.4, 1);
+  sprite.scale.set(scale, scale * 0.25, 1);
   return sprite;
 }
 
@@ -388,6 +388,7 @@ function updateHeatSurface(mesh, scene, density, dMax) {
 
 function buildStaticStructure(scene, root, exitCells) {
   const { nx, ny, dx, dy, origin } = scene.grid;
+  const maxDim = Math.max(nx * dx, ny * dy);
   const wallH = 1.8;
 
   // 地面（接收阴影）
@@ -563,7 +564,8 @@ function buildStaticStructure(scene, root, exitCells) {
         root.add(panel);
       }
     }
-    const label = makeExitLabel(exit.exitId);
+    // 标签尺寸随场馆缩放：约 9% 场馆长边，保证小展厅和大体育馆都易读
+    const label = makeExitLabel(exit.exitId, Math.max(2.6, maxDim * 0.09));
     label.position.set(sx / exit.cells.length, 2.1, -(sy / exit.cells.length));
     root.add(label);
   }
